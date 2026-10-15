@@ -23,3 +23,9 @@ export const firebaseConfig = {
 
 /** NEXT_PUBLIC_DEMO=1 でビルドすると、ログインなしのデモデータで動く（画面の確認用） */
 export const DEMO = process.env.NEXT_PUBLIC_DEMO === "1";
+
+/**
+ * プッシュ通知（Web Push）の公開鍵。秘密鍵は Firestore の secrets/webpush にあり、送るのは scripts/db.mjs。
+ * 作り直すときは `node scripts/db.mjs push:keys`（作り直すと、オンにしていた端末はもう一度オンにする必要がある）。
+ */
+export const VAPID_PUBLIC_KEY = "BElkEBVvuIVv4-cJXyDNOsG8sHbEoGPZJ_81Skw0XFkL5xQWWr39-kkBy2lzSt_2DStYZ4J4e7_m3HsOThiZCkY";

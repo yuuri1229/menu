@@ -8,6 +8,7 @@
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { COLLECTIONS, checkRefs, validate } from "./schema.mjs";
+import { buildReminder, jstDate } from "./notify.mjs";
 
 const HELP = `使い方: node scripts/db.mjs <コマンド> [引数]
 
@@ -28,18 +29,25 @@ const HELP = `使い方: node scripts/db.mjs <コマンド> [引数]
   members remove <メール>          メンバーから外す
   rules:deploy                     firestore.rules を本番に反映する
 
+通知（アプリの「アカウント」で通知をオンにした端末に届く）
+  notify <タイトル> [本文] [--url パス]  全端末にプッシュ通知を送る（--url はアプリ内のパス。例 shopping/）
+  notify:remind [--date YYYY-MM-DD]      明日の買い物と段取りの通知を送る（無ければ送らない。毎晩 Actions が実行）
+  push                                   通知を受け取る端末の一覧
+  push:keys                              通知の鍵（VAPID）を作る。初回だけ。公開鍵を src/lib/config.ts に書く
+
 コレクション: ${COLLECTIONS.join(", ")}`;
 
 const args = process.argv.slice(2);
 const flags = new Set(args.filter((a) => a.startsWith("--")));
 const positional = [];
 for (let i = 0; i < args.length; i++) {
-  if (args[i] === "--out") i++;
+  if (args[i] === "--out" || args[i] === "--url" || args[i] === "--date") i++;
   else if (!args[i].startsWith("--")) positional.push(args[i]);
 }
 const [cmd, ...rest] = positional;
 const DRY = flags.has("--dry-run");
 const FORCE = flags.has("--force");
+const option = (name) => (args.includes(name) ? args[args.indexOf(name) + 1] : undefined);
 
 if (!cmd || cmd === "help" || flags.has("--help")) {
   console.log(HELP);
@@ -180,6 +188,43 @@ async function upsert(input, { replace = false, full = false } = {}) {
   else if (created.length) console.log(`新しく作った文書:\n  ${created.join("\n  ")}`);
 }
 
+// 通知の鍵は secrets/webpush に置く（firestore.rules でアプリからは読めない）。公開鍵だけ src/lib/config.ts にも書く
+async function webpush() {
+  const wp = (await import("web-push")).default;
+  const keys = (await db.doc("secrets/webpush").get()).data();
+  if (!keys) fail("通知の鍵がありません。先に `node scripts/db.mjs push:keys` を実行してください。");
+  wp.setVapidDetails(keys.subject, keys.publicKey, keys.privateKey);
+  return wp;
+}
+
+/** 全端末に送る。もう使われていない端末（410/404）は一覧から消す */
+async function sendPush(payload) {
+  const qs = await db.collection("pushSubscriptions").get();
+  if (DRY) {
+    console.log(`（--dry-run）${qs.size}台に送ります:\n${JSON.stringify(payload, null, 1)}`);
+    return;
+  }
+  if (!qs.size) {
+    console.log("通知を受け取る端末がありません（アプリの「アカウント」で通知をオンにする）");
+    return;
+  }
+  const wp = await webpush();
+  let sent = 0;
+  for (const d of qs.docs) {
+    const { endpoint, keys } = d.data();
+    try {
+      await wp.sendNotification({ endpoint, keys }, JSON.stringify(payload), { TTL: 12 * 3600, urgency: "normal" });
+      sent++;
+    } catch (e) {
+      if (e.statusCode === 404 || e.statusCode === 410) {
+        await d.ref.delete();
+        console.log(`使われていない端末を外しました（${d.data().device ?? d.id}）`);
+      } else console.error(`送れませんでした（${d.data().device ?? d.id}）: ${e.statusCode ?? ""} ${e.body ?? e.message}`);
+    }
+  }
+  console.log(`${sent}/${qs.size}台に送りました: ${payload.title}`);
+}
+
 // 検査で止めたときなどは、スタックではなく理由だけを見せる
 try {
   switch (cmd) {
@@ -285,6 +330,44 @@ try {
       }
       const ruleset = await getSecurityRules(app).releaseFirestoreRulesetFromSource(source);
       console.log(`firestore.rules を反映しました（${ruleset.name}）`);
+      break;
+    }
+    case "notify": {
+      const [title, body = ""] = rest;
+      if (!title) fail("notify <タイトル> [本文] の形で指定してください");
+      await sendPush({ title, body, url: option("--url") ?? "", tag: undefined });
+      break;
+    }
+    case "notify:remind": {
+      const tomorrow = option("--date") ?? jstDate(new Date(), 1);
+      const snap = await loadAll();
+      const payload = buildReminder(snap, tomorrow);
+      if (!payload) {
+        console.log(`${tomorrow} は買い物も段取りもないので送りません`);
+        break;
+      }
+      await sendPush(payload);
+      break;
+    }
+    case "push": {
+      const qs = await db.collection("pushSubscriptions").get();
+      if (!qs.size) console.log("通知を受け取る端末はありません");
+      for (const d of qs.docs) console.log(`${d.data().device ?? "?"}  ${d.data().createdAt ?? ""}  (${d.id})`);
+      break;
+    }
+    case "push:keys": {
+      const ref = db.doc("secrets/webpush");
+      let keys = (await ref.get()).data();
+      if (!keys) {
+        const wp = (await import("web-push")).default;
+        keys = { ...wp.generateVAPIDKeys(), subject: "https://yuuri1229.github.io/menu/" };
+        if (DRY) fail("（--dry-run）鍵はまだありません。--dry-run を外すと作ります");
+        await ref.set(keys);
+        console.log("通知の鍵を作りました");
+      }
+      const config = readFileSync(new URL("../src/lib/config.ts", import.meta.url), "utf8");
+      console.log(`公開鍵: ${keys.publicKey}`);
+      if (!config.includes(keys.publicKey)) console.log("→ src/lib/config.ts の VAPID_PUBLIC_KEY をこの値にしてください");
       break;
     }
     default:

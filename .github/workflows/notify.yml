@@ -1,0 +1,49 @@
+name: プッシュ通知を送る
+
+# 毎晩20時（日本時間）に、明日の買い物と段取りがあればプッシュ通知を送る（無い日は送らない）。
+# 手動（workflow_dispatch）でタイトルを入れて実行すると、その通知を送る。Claude のクラウド環境から
+# Apple の通知サーバーに届かないときは、Claude がこれを実行して送る。
+on:
+  schedule:
+    - cron: "0 11 * * *"
+  workflow_dispatch:
+    inputs:
+      title:
+        description: 通知のタイトル（空なら明日の準備のリマインド）
+        required: false
+      body:
+        description: 本文
+        required: false
+      url:
+        description: 開くアプリ内のパス（例 shopping/）
+        required: false
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: 鍵があるか確かめる
+        id: key
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          if [ -n "$FIREBASE_SERVICE_ACCOUNT" ]; then echo "ok=true" >> "$GITHUB_OUTPUT"; else echo "::notice::FIREBASE_SERVICE_ACCOUNT が未設定のため通知をスキップしました"; fi
+      - if: steps.key.outputs.ok == 'true'
+        run: npm ci
+      - if: steps.key.outputs.ok == 'true'
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          TITLE: ${{ inputs.title }}
+          BODY: ${{ inputs.body }}
+          URL_PATH: ${{ inputs.url }}
+        run: |
+          if [ -n "$TITLE" ]; then
+            node scripts/db.mjs notify "$TITLE" "$BODY" --url "$URL_PATH"
+          else
+            node scripts/db.mjs notify:remind
+          fi

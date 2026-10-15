@@ -26,6 +26,7 @@
     "@types/react-dom": "^19.3.0",
     "firebase-admin": "^14.5.0",
     "tailwindcss": "^4.3.3",
-    "typescript": "5.9"
+    "typescript": "5.9",
+    "web-push": "^3.6.7"
   }
 }
