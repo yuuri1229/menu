@@ -1,10 +1,10 @@
 # 公開までの設定
 
-サイトは GitHub Pages で配信し、データは Notion → GitHub Actions → Firestore の順に流れます。
-Firestore はログインしたアカウントしか読めないので、献立や買い物の記録が外から見えることはありません。
+サイトは GitHub Pages で配信し、データは Firestore に置きます。Claude は `scripts/db.mjs` で Firestore を読み書きし、
+サイトはログインしたアカウントだけが読めます。献立や買い物の記録が外から見えることはありません。
 
 ```
-Notion ──(毎時 Actions)──▶ Firestore ◀──(ログインして読む)── GitHub Pages のサイト
+Claude ──(scripts/db.mjs)──▶ Firestore ◀──(ログインして読み書き)── GitHub Pages のサイト
 ```
 
 ## 1. Firebase
@@ -12,38 +12,40 @@ Notion ──(毎時 Actions)──▶ Firestore ◀──(ログインして読
 1. プロジェクト `menu-webapps` は作成済み（ウェブアプリの設定は `src/lib/config.ts` に入れてあります）。
 2. **Authentication** → 始める → ログイン方法で **メール / パスワード** を有効にする。
 3. **Authentication → ユーザー → ユーザーを追加** で、自分のメールとパスワードを登録する。
-4. **Authentication → 設定 → ユーザーアクション** で **「作成（登録）を有効にする」のチェックを外す**。
-   これで画面以外の方法でも新規登録できなくなります（項目が見当たらなければ飛ばして大丈夫です。`ALLOWED_EMAILS` に無いアカウントはデータを読めません）。
+4. **Authentication → 設定 → ユーザーアクション** で **「作成（登録）を有効にする」のチェックを外す**（見当たらなければ飛ばして大丈夫です。メンバー以外はデータを読めません）。
 5. **Authentication → 設定 → 承認済みドメイン** に `yuuri1229.github.io` を追加する。
 6. **Firestore Database** → データベースを作成（本番モード、リージョンは `asia-northeast1` など）。
-   **ルール** タブに、このリポジトリの [`firestore.rules`](../firestore.rules) の中身を貼って公開する。
 7. **プロジェクトの設定 → サービスアカウント → 新しい秘密鍵の生成** で JSON をダウンロードする。
+   この鍵はリポジトリやチャットに貼らないでください。
 
-## 2. Notion
+## 2. 鍵を渡す（Claude と GitHub）
 
-1. [インテグレーションの管理](https://www.notion.so/profile/integrations) で内部インテグレーションを作り、
-   **シークレット**（`ntn_…`）を控える。機能は「コンテンツを読み取る」だけで十分です。
-2. Notion の「献立作成　Claude連携」ページ右上の `…` → **接続** から、作ったインテグレーションを追加する。
-   配下のデータベースとページもまとめて読めるようになります。
+ダウンロードした JSON の中身を、そのまま次の2か所に入れます。
 
-## 3. GitHub
-
-リポジトリの **Settings → Secrets and variables → Actions** に登録します。
-
-| 種類 | 名前 | 値 |
+| 場所 | 名前 | 用途 |
 | --- | --- | --- |
-| Secret | `NOTION_TOKEN` | Notion のシークレット |
-| Secret | `FIREBASE_SERVICE_ACCOUNT` | サービスアカウントの JSON（ファイルの中身をそのまま貼る） |
-| Secret | `ALLOWED_EMAILS` | サイトを見てよいメール（複数はカンマ区切り） |
-Web 用の Firebase 設定（`apiKey` など）はブラウザに配られる値なので秘密ではなく、コードに入れてあります。
-データを守っているのは Firestore のルールです。
+| Claude のプロジェクト設定 → クラウド環境 → 環境変数 | `FIREBASE_CLIENT_EMAIL` と `FIREBASE_PRIVATE_KEY`（鍵ファイルの `client_email`・`private_key` の値を1行ずつ。入力欄が1行ずつ読むため） | Claude が献立・レシート・在庫を書き込む |
+| GitHub の Settings → Secrets and variables → Actions | `FIREBASE_SERVICE_ACCOUNT` | `firestore.rules` を変更したときに自動で反映する |
 
-続けて:
+Web 用の Firebase 設定（`apiKey` など）はブラウザに配られる値なので秘密ではなく、コードに入れてあります。
+データを守っているのは Firestore のルールとメンバー登録です。
+
+鍵が入ったら、Claude が次を行います（手元で行う場合も同じコマンドです）。
+
+```sh
+npm ci
+node scripts/db.mjs rules:deploy                 # firestore.rules を反映
+node scripts/db.mjs members add あなたのメール      # サイトを使えるようにする
+node scripts/db.mjs import 移行データ.json          # 最初のデータを入れる
+node scripts/db.mjs check
+```
+
+## 3. GitHub Pages
 
 1. **Settings → Pages → Source** を **GitHub Actions** にする。
-2. **Settings → General → Default branch** を `main` にする（Pages は既定ブランチからだけ公開できるため）。
-3. **Actions → Notion を同期 → Run workflow** で一度手動実行する（以後は毎時自動）。
-4. **Actions → サイトを公開 → Run workflow**（`main` に変更が入るたびに自動でも動きます）。
+2. **Settings → General → Default branch** を `main` にする。
+3. **Settings → Environments → github-pages** の Deployment branches に `main` を入れる。
+4. `main` に変更が入るたびに **サイトを公開** が動きます。
 
 公開先は `https://yuuri1229.github.io/menu/` です。
 
@@ -51,11 +53,10 @@ Web 用の Firebase 設定（`apiKey` など）はブラウザに配られる値
 
 1. iPhone の **Safari** で公開先を開く。
 2. 画面下の共有ボタン → **ホーム画面に追加**。
-3. ホーム画面の「こんだて帖」アイコンから開き、その中でログインする。
-   ホーム画面のアプリは Safari とログイン状態を共有しないため、追加後にアプリの中で一度ログインします（以後はログインしたまま）。
+3. ホーム画面の「こんだて帖」アイコンから開き、その中でログインする（以後はログインしたまま）。
 
 ## うまくいかないとき
 
-- **ログインできるがデータが出ない**：`ALLOWED_EMAILS` に、ログインしたメールが入っているか。入れたあと「Notion を同期」を再実行する。
-- **同期が 404 で失敗する**：Notion のページにインテグレーションを接続したか。
+- **ログインできるがデータが出ない**：`node scripts/db.mjs members` にログインしたメールが出るか。なければ `members add`。
+- **「変更を保存する権限がありません」**：`rules:deploy` でルールを反映したか。
 - **ログイン画面で auth/unauthorized-domain**：承認済みドメインに `yuuri1229.github.io` を追加したか。

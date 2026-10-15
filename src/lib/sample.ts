@@ -2,7 +2,7 @@
 // 今日を含む週の献立として毎回作り直す。実データは含めない。
 
 import { addDays, md, todayJST, wd, weekStart } from "./date";
-import type { Block, Ingredient, InventoryItem, Meal, Purchase, RichText, Slot, Snapshot } from "./types";
+import type { Ingredient, InventoryItem, Meal, Purchase, Slot, Snapshot } from "./types";
 
 type MealSeed = [title: string, main: string, sides: string, minutes: number, genre: string, memo: string];
 
@@ -80,8 +80,6 @@ const INVENTORY: [string, string, InventoryItem["status"], InventoryItem["seafoo
   ["ラップ", "消耗品", "十分", null, "常温"],
 ];
 
-const r = (t: string): RichText[] => [{ t }];
-
 export function sampleSnapshot(): Snapshot {
   const today = todayJST();
   const mon = weekStart(today);
@@ -99,6 +97,7 @@ export function sampleSnapshot(): Snapshot {
       main,
       sides,
       memo,
+      recipe: "",
       genre,
       minutes,
       done: addDays(mon, i) < today,
@@ -209,31 +208,31 @@ export function sampleSnapshot(): Snapshot {
     purchasedAt: null,
   }));
 
-  const weekNote: Block[] = [
-    { type: "h2", rich: r("予算") },
-    { type: "ul", rich: r("週の予算：5,000円（米・調味料は別枠）") },
-    { type: "ul", rich: r("試算額：4,640円 → 予備費 360円") },
-    { type: "h2", rich: r("回ごとの予算と試算") },
-    ...trips.map((t, i) => ({ type: "ul" as const, rich: r(`${t.label}：試算 ${[1510, 1280, 645][i].toLocaleString()}円`) })),
-    { type: "h2", rich: r("炊飯スケジュール") },
-    { type: "ul", rich: r("月曜夜：2合 → 月曜夜〜火曜の4食") },
-    { type: "ul", rich: r("水曜朝：3合（火曜夜に予約） → 水曜〜木曜の5食") },
-    { type: "callout", icon: "🍚", rich: r("炊いたご飯は1食分ずつラップで包み、冷蔵して翌日中に食べ切る") },
-    { type: "h2", rich: r(`${trips[2].label} の買い物`) },
-    { type: "todo", checked: false, rich: r("千切りキャベツ 3袋 … 255円") },
-    { type: "todo", checked: false, rich: r("もやし 1袋 … 40円") },
-    { type: "todo", checked: false, rich: [{ t: "豚こま切れ肉", s: true }, { t: " → 買わない（水曜の豚バラの残りを使う）" }] },
-  ];
+  const weekNote = [
+    "## 予算",
+    "- 週の予算：5,000円（米・調味料は別枠）",
+    "- 試算額：4,640円 → 予備費 360円",
+    "## 回ごとの予算と試算",
+    ...trips.map((t, i) => `- ${t.label}：試算 ${[1510, 1280, 645][i].toLocaleString()}円`),
+    "## 炊飯スケジュール",
+    "- 月曜夜：2合 → 月曜夜〜火曜の4食",
+    "- 水曜朝：3合（火曜夜に予約） → 水曜〜木曜の5食",
+    "> 🍚 炊いたご飯は1食分ずつラップで包み、冷蔵して翌日中に食べ切る",
+    `## ${trips[2].label} の買い物`,
+    "- [ ] 千切りキャベツ 3袋 … 255円",
+    "- [ ] もやし 1袋 … 40円",
+    "- [ ] ~~豚こま切れ肉~~ → 買わない（水曜の豚バラの残りを使う）",
+  ].join("\n");
 
-  const rules: Block[] = [
-    { type: "h2", rich: r("食材の制約（厳守）") },
-    { type: "ul", rich: [{ t: "食物アレルギー：いか", b: true }, { t: " → 絶対に使わない" }] },
-    { type: "ul", rich: r("NG：魚の切り身、貝類、さば缶、はんぺん") },
-    { type: "ul", rich: r("OK：ツナ、ちくわ、えび、たこ、かまぼこ") },
-    { type: "h2", rich: r("キッチン環境") },
-    { type: "ul", rich: r("IH 1口コンロ、グリルなし、電子レンジあり") },
-    { type: "ul", rich: r("冷蔵・冷凍庫が狭く、まとめ買い・大量の作り置きは不可") },
-  ];
+  const rules = [
+    "## 食材の制約（厳守）",
+    "- **食物アレルギー：いか** → 絶対に使わない",
+    "- NG：魚の切り身、貝類、さば缶、はんぺん",
+    "- OK：ツナ、ちくわ、えび、たこ、かまぼこ",
+    "## キッチン環境",
+    "- IH 1口コンロ、グリルなし、電子レンジあり",
+    "- 冷蔵・冷凍庫が狭く、まとめ買い・大量の作り置きは不可",
+  ].join("\n");
 
   return {
     syncedAt: new Date(Date.now() - 42 * 60000).toISOString(),
@@ -242,8 +241,8 @@ export function sampleSnapshot(): Snapshot {
     purchases,
     inventory,
     notes: [
-      { id: "n-week", title: `買い物リスト・予算（${md(mon)}〜${md(addDays(mon, 6))}）`, icon: "🧾", kind: "week", start: mon, end: addDays(mon, 6), blocks: weekNote, editedAt: null },
-      { id: "n-rules", title: "前提条件・調理環境・買い物計画", icon: "📋", kind: "rules", start: null, end: null, blocks: rules, editedAt: null },
+      { id: "n-week", title: `買い物リスト・予算（${md(mon)}〜${md(addDays(mon, 6))}）`, icon: "🧾", kind: "week", start: mon, end: addDays(mon, 6), markdown: weekNote, blocks: [], editedAt: null },
+      { id: "n-rules", title: "前提条件・調理環境・買い物計画", icon: "📋", kind: "rules", start: null, end: null, markdown: rules, blocks: [], editedAt: null },
     ],
   };
 }

@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import clsx from "clsx";
-import { Check, ChevronLeft, ChevronRight, NotebookText, RotateCcw, ShoppingBasket, Snowflake } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, NotebookText, ShoppingBasket, Snowflake } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { Empty, LoadingCards, Progress, Segmented } from "@/components/ui";
 import { useData } from "@/lib/data";
@@ -14,29 +14,6 @@ import { groupBy, sum, yen } from "@/lib/format";
 import type { Ingredient } from "@/lib/types";
 
 const CATEGORY_ORDER = ["野菜", "肉", "卵・大豆製品", "乳製品・果物", "主食", "その他"];
-const STORAGE_KEY = "kondate:checked";
-
-/** 店でのチェックは端末に保存する（Notion には書き戻さない） */
-function useLocalChecks() {
-  const [checks, setChecks] = useState<Record<string, boolean>>({});
-  useEffect(() => {
-    try {
-      setChecks(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}"));
-    } catch {
-      /* 読めなければ空のまま */
-    }
-  }, []);
-  const update = (next: Record<string, boolean>) => {
-    setChecks(next);
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-    } catch {
-      /* プライベートブラウズなどで保存できなくても表示は続ける */
-    }
-  };
-  return [checks, update] as const;
-}
-
 export default function ShoppingPage() {
   return (
     <Suspense fallback={<LoadingCards />}>
@@ -54,8 +31,7 @@ interface Trip {
 
 function Shopping() {
   const params = useSearchParams();
-  const { ingredients, notes, status } = useData();
-  const [checks, setChecks] = useLocalChecks();
+  const { ingredients, notes, status, setBought } = useData();
   const [hideDone, setHideDone] = useState(false);
   const { today } = useNow();
 
@@ -94,7 +70,7 @@ function Shopping() {
       <>
         <PageHeader eyebrow="買い物" title="買い物リスト" />
         <Empty icon={<ShoppingBasket className="size-6" />} title="買い物リストがありません">
-          Notion の「食材リスト（週ごと）」に買い物回が入ると、ここに表示されます。
+          献立づくりで食材に買い物回が入ると、ここに表示されます。
         </Empty>
       </>
     );
@@ -103,13 +79,9 @@ function Shopping() {
   const weekTrips = trips.filter((t) => t.week === trip.week);
   const weeks = [...new Set(trips.map((t) => t.week))];
   const wi = weeks.indexOf(trip.week);
-  const isChecked = (i: Ingredient) => checks[i.id] ?? i.bought;
-  const toggle = (i: Ingredient) => setChecks({ ...checks, [i.id]: !isChecked(i) });
-  const resetTrip = () => {
-    const next = { ...checks };
-    for (const i of trip.items) delete next[i.id];
-    setChecks(next);
-  };
+  // チェックは「買った」として保存され、Claude もほかの端末も同じ状態を見る
+  const isChecked = (i: Ingredient) => i.bought;
+  const toggle = (i: Ingredient) => setBought(i.id, !i.bought);
 
   const done = trip.items.filter(isChecked).length;
   const estimate = sum(trip.items.map((i) => i.estimate));
@@ -198,10 +170,6 @@ function Shopping() {
         >
           チェック済みを隠す
         </button>
-        <button type="button" onClick={resetTrip} className="tap flex items-center gap-1 rounded-full px-3 py-1.5 text-[13px] text-ink-3">
-          <RotateCcw className="size-3.5" />
-          リセット
-        </button>
         {note && (
           <Link href={`/notes?id=${note.id}`} className="tap ml-auto flex items-center gap-1 rounded-full px-3 py-1.5 text-[13px] text-accent">
             <NotebookText className="size-4" />
@@ -262,9 +230,9 @@ function Shopping() {
       </div>
 
       <p className="mt-6 text-center text-[12px] leading-relaxed text-ink-3">
-        チェックはこの端末にだけ保存されます。
+        チェックすると「買った」として保存され、ほかの端末や Claude にもすぐ伝わります。
         <br />
-        Notion の「購入済み」にチェックが入っている食材は最初からチェック済みです。
+        電波がない店内でも押せます（つながったときに送られます）。
       </p>
     </>
   );

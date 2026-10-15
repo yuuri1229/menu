@@ -33,7 +33,7 @@ function Gate({ children }: { children: ReactNode }) {
 
 function Frame({ children }: { children: ReactNode }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const { demo, error } = useData();
+  const { demo, error, writeError, clearWriteError } = useData();
   return (
     <SettingsContext.Provider value={() => setSettingsOpen(true)}>
       <div className="min-h-dvh md:pl-24 lg:pl-60">
@@ -52,6 +52,17 @@ function Frame({ children }: { children: ReactNode }) {
           {children}
         </main>
       </div>
+      {writeError && (
+        <div
+          role="alert"
+          className="fade-in fixed inset-x-4 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-40 mx-auto flex max-w-md items-start gap-3 rounded-2xl bg-danger px-4 py-3 text-[14px] text-white shadow-float md:bottom-6"
+        >
+          <span className="min-w-0 flex-1">{writeError}</span>
+          <button type="button" onClick={clearWriteError} className="shrink-0 font-bold underline-offset-2 hover:underline">
+            閉じる
+          </button>
+        </div>
+      )}
       <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </SettingsContext.Provider>
   );

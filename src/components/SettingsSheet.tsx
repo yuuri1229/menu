@@ -23,7 +23,7 @@ export function SettingsSheet({ open, onClose }: { open: boolean; onClose: () =>
         <div className="rounded-2xl bg-surface-2 p-4">
           <div className="flex items-center gap-2 text-[13px] text-ink-2">
             <RefreshCw className="size-4" />
-            Notion との同期：<span className="font-medium text-ink">{timeAgo(syncedAt)}</span>
+            Claude の最終更新：<span className="font-medium text-ink">{timeAgo(syncedAt)}</span>
           </div>
           {syncedAt && (
             <p className="num mt-1 text-[12px] text-ink-3">
@@ -34,7 +34,7 @@ export function SettingsSheet({ open, onClose }: { open: boolean; onClose: () =>
             献立 {meals.length}・食材 {ingredients.length}・明細 {purchases.length}・在庫 {inventory.length}
           </p>
           <p className="mt-2 text-[12px] leading-relaxed text-ink-3">
-            Notion の内容は1時間ごとに自動で取り込みます。すぐ反映したいときは GitHub の Actions で「Notion を同期」を手動実行してください。
+            献立・買い物・在庫は Claude と同じデータを見ています。Claude が更新するとすぐ画面に反映され、ここで押した「作った」「買った」「在庫の状態」も Claude に伝わります。
           </p>
         </div>
 

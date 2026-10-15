@@ -1,7 +1,10 @@
 rules_version = '2';
 
-// Notion から同期したデータは、members に登録されたアカウントだけが読める。
-// 書き込みは同期スクリプト（サービスアカウント。ルールの対象外）だけが行う。
+// こんだて帖のデータは、members に登録されたアカウントだけが読める。
+// アプリから書き換えられるのは「作った」「買った」「在庫の状態」の3項目だけ。
+// それ以外（献立づくり・レシートの記録など）は Claude が scripts/db.mjs で書く
+// （サービスアカウントはこのルールの対象外）。
+// 変更したら scripts/schema.mjs の MEMBER_WRITABLE も合わせ、`node scripts/db.mjs rules:deploy` で反映する。
 service cloud.firestore {
   match /databases/{database}/documents {
     function isMember() {
@@ -9,14 +12,44 @@ service cloud.firestore {
         && exists(/databases/$(database)/documents/members/$(request.auth.uid));
     }
 
+    function onlyChanges(field) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([field]);
+    }
+
     match /members/{uid} {
       allow read: if request.auth != null && request.auth.uid == uid;
       allow write: if false;
     }
 
-    match /{collection}/{id} {
-      allow read: if isMember() && collection in ['meals', 'ingredients', 'purchases', 'inventory', 'notes', 'meta'];
+    match /meta/{id} {
+      allow read: if isMember();
       allow write: if false;
+    }
+
+    match /notes/{id} {
+      allow read: if isMember();
+      allow write: if false;
+    }
+
+    match /purchases/{id} {
+      allow read: if isMember();
+      allow write: if false;
+    }
+
+    match /meals/{id} {
+      allow read: if isMember();
+      allow update: if isMember() && onlyChanges('done') && request.resource.data.done is bool;
+    }
+
+    match /ingredients/{id} {
+      allow read: if isMember();
+      allow update: if isMember() && onlyChanges('bought') && request.resource.data.bought is bool;
+    }
+
+    match /inventory/{id} {
+      allow read: if isMember();
+      allow update: if isMember() && onlyChanges('status')
+        && request.resource.data.status in ['十分', '残りわずか', '切れた', '要確認'];
     }
   }
 }

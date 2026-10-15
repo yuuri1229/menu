@@ -1,12 +1,14 @@
 "use client";
 
 import clsx from "clsx";
-import { CircleCheck, Clock, Lightbulb, Pencil, ShoppingBasket, Sparkles } from "lucide-react";
+import { Check, ChefHat, CircleCheck, Clock, Lightbulb, Pencil, ShoppingBasket, Sparkles } from "lucide-react";
 import { useData } from "@/lib/data";
 import { mdw, wd } from "@/lib/date";
 import { yen } from "@/lib/format";
+import { parseMarkdown } from "@/lib/markdown";
 import { isBento, memoSentences, SLOT_META, splitTitle, titleTag } from "@/lib/meals";
 import type { Meal, Slot } from "@/lib/types";
+import { Blocks } from "./NoteBlocks";
 import { Pill, Sheet } from "./ui";
 
 const TONE_BAR = { morning: "bg-morning", noon: "bg-noon", night: "bg-night" } as const;
@@ -116,8 +118,10 @@ const MEMO_STYLE = {
   plain: { icon: null, box: "", label: "", iconClass: "" },
 } as const;
 
-export function MealSheet({ meal, onClose }: { meal: Meal | null; onClose: () => void }) {
-  const { ingredientById } = useData();
+export function MealSheet({ meal: opened, onClose }: { meal: Meal | null; onClose: () => void }) {
+  const { ingredientById, mealById, setMealDone } = useData();
+  // 開いている間に「作った」やほかの端末・Claude の更新が入っても、最新の内容を出す
+  const meal = opened ? (mealById.get(opened.id) ?? opened) : null;
   if (!meal) return null;
   const { head, extras } = splitTitle(meal.title);
   const tag = titleTag(meal.title);
@@ -138,6 +142,20 @@ export function MealSheet({ meal, onClose }: { meal: Meal | null; onClose: () =>
           </div>
           <h2 className="mt-1.5 font-display text-[22px] leading-snug font-bold">{head}</h2>
         </div>
+      }
+      footer={
+        <button
+          type="button"
+          aria-pressed={meal.done}
+          onClick={() => setMealDone(meal.id, !meal.done)}
+          className={clsx(
+            "tap flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 font-bold",
+            meal.done ? "bg-ok-soft text-ok" : "bg-accent text-accent-ink shadow-card",
+          )}
+        >
+          <Check className="size-5" strokeWidth={2.5} />
+          {meal.done ? "作った（もう一度押すと取り消し）" : "作った"}
+        </button>
       }
     >
       <div className="space-y-5">
@@ -160,8 +178,6 @@ export function MealSheet({ meal, onClose }: { meal: Meal | null; onClose: () =>
               <dd className="num">約{meal.minutes}分</dd>
             </>
           )}
-          <dt className="text-ink-3">状態</dt>
-          <dd>{meal.done ? <span className="text-ok">作った</span> : <span className="text-ink-2">これから</span>}</dd>
         </dl>
 
         {sentences.length > 0 && (
@@ -200,6 +216,18 @@ export function MealSheet({ meal, onClose }: { meal: Meal | null; onClose: () =>
                 </li>
               ))}
             </ul>
+          </section>
+        )}
+
+        {meal.recipe?.trim() && (
+          <section>
+            <h3 className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-ink-2">
+              <ChefHat className="size-4" />
+              作り方
+            </h3>
+            <div className="text-[14px] leading-relaxed [&_h2]:mt-4 [&_h2]:text-[15px] [&_h3]:mt-3 [&_h3]:text-[14px] [&_h4]:mt-3 [&_h4]:text-[14px]">
+              <Blocks blocks={parseMarkdown(meal.recipe)} />
+            </div>
           </section>
         )}
       </div>
