@@ -40,7 +40,7 @@ function NoteList({ notes }: { notes: Note[] }) {
 
   return (
     <>
-      <PageHeader eyebrow="Notion のページ" title="ノート" />
+      <PageHeader eyebrow="週のメモ・前提条件" title="ノート" />
       {sorted.length === 0 ? (
         <Empty icon={<NotebookText className="size-6" />} title="ノートはまだありません" />
       ) : (
@@ -85,7 +85,7 @@ function NoteView({ note }: { note: Note }) {
           ノート
         </Link>
       </div>
-      <PageHeader eyebrow={note.icon ? `${note.icon} Notion` : "Notion"} title={note.title} />
+      <PageHeader eyebrow={note.icon ? `${note.icon} ノート` : "ノート"} title={note.title} />
 
       {sections.length > 2 && (
         <nav aria-label="目次" className="no-scrollbar sticky top-0 z-10 -mx-4 mb-3 flex gap-2 overflow-x-auto bg-bg/90 px-4 py-2 backdrop-blur pt-safe">

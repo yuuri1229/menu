@@ -5,7 +5,7 @@ next-env.d.ts
 *.tsbuildinfo
 .env*.local
 .env
-# Notion から取り出したデータ（個人情報を含むのでコミットしない）
+# 書き出したデータ（個人情報を含むのでコミットしない）
 data/
 service-account*.json
 .DS_Store

@@ -1,4 +1,4 @@
-// scripts/notion-normalize.mjs が作る形と同じ。
+// Firestore の形（scripts/schema.mjs）に、アプリが計算して足す項目（※）を加えたもの。
 
 export type Slot = "朝食" | "昼食" | "夕食";
 export const SLOTS: Slot[] = ["朝食", "昼食", "夕食"];
@@ -27,9 +27,11 @@ export interface Ingredient {
   tripDate: string | null;
   amount: string;
   estimate: number | null;
-  actual: number | null;
   bought: boolean;
   memo: string;
+  /** ※ この食材につながる買い物明細の合計（なければ null） */
+  actual: number | null;
+  /** ※ この食材を使う献立 */
   mealIds: string[];
 }
 
@@ -92,6 +94,8 @@ export interface Note {
   kind: "week" | "rules" | "page";
   start: string | null;
   end: string | null;
+  markdown: string;
+  /** ※ markdown を表示用に変換したもの */
   blocks: Block[];
   editedAt: string | null;
 }

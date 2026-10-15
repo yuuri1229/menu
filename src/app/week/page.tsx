@@ -127,7 +127,7 @@ function Week() {
         <LoadingCards count={4} />
       ) : weekMeals.length === 0 ? (
         <Empty icon={<CalendarDays className="size-6" />} title="この週の献立はありません">
-          毎週土曜の夕方に、翌週分が Notion に自動で作られます。
+          毎週土曜の夕方に、Claude が翌週分を自動で作ります。
         </Empty>
       ) : (
         <div className="grid gap-3 lg:grid-cols-2">

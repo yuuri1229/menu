@@ -3,9 +3,9 @@
 import { Suspense, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import clsx from "clsx";
-import { Fish, Refrigerator, Search, Snowflake, TriangleAlert, X } from "lucide-react";
+import { Check, ChevronRight, Fish, Refrigerator, Search, Snowflake, TriangleAlert, X } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
-import { Empty, LoadingCards, Pill, type Tone } from "@/components/ui";
+import { Empty, LoadingCards, Pill, Sheet, type Tone } from "@/components/ui";
 import { useData } from "@/lib/data";
 import { useNow } from "@/lib/now";
 import { diffDays, mdw } from "@/lib/date";
@@ -14,6 +14,12 @@ import type { InventoryItem, StockStatus } from "@/lib/types";
 
 const STATUS_TONE: Record<StockStatus, Tone> = { 十分: "ok", 残りわずか: "warn", 切れた: "danger", 要確認: "neutral" };
 const STATUS_RANK: Record<string, number> = { 切れた: 0, 残りわずか: 1, 要確認: 2, 十分: 3 };
+const STATUS_HELP: [StockStatus, string][] = [
+  ["十分", "家にある。買わない"],
+  ["残りわずか", "次の買い物で買う"],
+  ["切れた", "すぐ買う"],
+  ["要確認", "家で確かめてから決める"],
+];
 const NEEDS_ACTION = (i: InventoryItem) => i.status === "切れた" || i.status === "残りわずか" || i.status === "要確認";
 
 type Filter = "all" | "action" | "seafood";
@@ -30,6 +36,7 @@ function Pantry() {
   const params = useSearchParams();
   const { inventory, status } = useData();
   const [q, setQ] = useState("");
+  const [editing, setEditing] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>((params.get("filter") as Filter) ?? "all");
   const { today } = useNow();
 
@@ -108,43 +115,53 @@ function Pantry() {
                 {items.map((i) => {
                   const days = i.bestBefore ? diffDays(i.bestBefore, today) : null;
                   return (
-                    <li key={i.id} className="flex items-start gap-3 px-4 py-3">
-                      <span
-                        className={clsx(
-                          "mt-2 size-2.5 shrink-0 rounded-full",
-                          i.status === "切れた" ? "bg-danger" : i.status === "残りわずか" ? "bg-warn" : i.status === "十分" ? "bg-ok" : "bg-ink-3",
-                        )}
-                        aria-hidden
-                      />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          <span className="text-[15px] font-medium">{i.name}</span>
-                          {i.storage === "冷蔵" && <Snowflake className="size-3.5 text-night" aria-label="冷蔵" />}
-                          {i.seafood === "NG" && (
-                            <Pill tone="danger">
-                              <Fish className="size-3" />
-                              魚介NG
-                            </Pill>
+                    <li key={i.id}>
+                      <button
+                        type="button"
+                        onClick={() => setEditing(i.id)}
+                        aria-label={`${i.name}の在庫の状態を変える`}
+                        className="tap flex w-full items-start gap-3 px-4 py-3 text-left active:bg-surface-2"
+                      >
+                        <span
+                          className={clsx(
+                            "mt-2 size-2.5 shrink-0 rounded-full",
+                            i.status === "切れた" ? "bg-danger" : i.status === "残りわずか" ? "bg-warn" : i.status === "十分" ? "bg-ok" : "bg-ink-3",
                           )}
-                          {i.seafood === "要確認" && (
-                            <Pill tone="warn">
-                              <Fish className="size-3" />
-                              魚介を確認
-                            </Pill>
+                          aria-hidden
+                        />
+                        <span className="block min-w-0 flex-1">
+                          <span className="flex flex-wrap items-center gap-1.5">
+                            <span className="text-[15px] font-medium">{i.name}</span>
+                            {i.storage === "冷蔵" && <Snowflake className="size-3.5 text-night" aria-label="冷蔵" />}
+                            {i.seafood === "NG" && (
+                              <Pill tone="danger">
+                                <Fish className="size-3" />
+                                魚介NG
+                              </Pill>
+                            )}
+                            {i.seafood === "要確認" && (
+                              <Pill tone="warn">
+                                <Fish className="size-3" />
+                                魚介を確認
+                              </Pill>
+                            )}
+                          </span>
+                          {(i.remaining || i.memo) && (
+                            <span className="mt-0.5 block text-[12px] leading-snug text-ink-3">{[i.remaining, i.memo].filter(Boolean).join("・")}</span>
                           )}
-                        </div>
-                        {(i.remaining || i.memo) && (
-                          <p className="mt-0.5 text-[12px] leading-snug text-ink-3">{[i.remaining, i.memo].filter(Boolean).join("・")}</p>
-                        )}
-                        {days != null && (
-                          <p className={clsx("num mt-0.5 flex items-center gap-1 text-[12px]", days <= 1 ? "text-danger" : days <= 3 ? "text-warn" : "text-ink-3")}>
-                            {days <= 3 && <TriangleAlert className="size-3" />}
-                            賞味期限 {mdw(i.bestBefore!)}
-                            {days < 0 ? "（切れています）" : days === 0 ? "（今日まで）" : days <= 3 ? `（あと${days}日）` : ""}
-                          </p>
-                        )}
-                      </div>
-                      {i.status && <Pill tone={STATUS_TONE[i.status]}>{i.status}</Pill>}
+                          {days != null && (
+                            <span className={clsx("num mt-0.5 flex items-center gap-1 text-[12px]", days <= 1 ? "text-danger" : days <= 3 ? "text-warn" : "text-ink-3")}>
+                              {days <= 3 && <TriangleAlert className="size-3" />}
+                              賞味期限 {mdw(i.bestBefore!)}
+                              {days < 0 ? "（切れています）" : days === 0 ? "（今日まで）" : days <= 3 ? `（あと${days}日）` : ""}
+                            </span>
+                          )}
+                        </span>
+                        <span className="flex shrink-0 items-center gap-0.5">
+                          {i.status && <Pill tone={STATUS_TONE[i.status]}>{i.status}</Pill>}
+                          <ChevronRight className="size-4 text-ink-3" />
+                        </span>
+                      </button>
                     </li>
                   );
                 })}
@@ -153,6 +170,59 @@ function Pantry() {
           ))}
         </div>
       )}
+      <StockSheet item={inventory.find((i) => i.id === editing) ?? null} onClose={() => setEditing(null)} />
     </>
+  );
+}
+
+/** 在庫の状態を変えるシート。押すとすぐ保存され、Claude の献立づくりにも反映される */
+function StockSheet({ item, onClose }: { item: InventoryItem | null; onClose: () => void }) {
+  const { setStock } = useData();
+  if (!item) return null;
+  return (
+    <Sheet
+      open
+      onClose={onClose}
+      title={
+        <div>
+          <p className="text-[13px] text-ink-3">{[item.category, item.storage].filter(Boolean).join("・") || "在庫"}</p>
+          <h2 className="mt-1 font-display text-[20px] leading-snug font-bold">{item.name}</h2>
+        </div>
+      }
+    >
+      <div className="space-y-4">
+        {(item.remaining || item.memo) && (
+          <p className="rounded-2xl bg-surface-2 p-4 text-[14px] leading-relaxed text-ink-2">{[item.remaining, item.memo].filter(Boolean).join("・")}</p>
+        )}
+        <fieldset>
+          <legend className="mb-2 text-[13px] font-bold text-ink-2">いまの状態</legend>
+          <div className="grid grid-cols-2 gap-2">
+            {STATUS_HELP.map(([value, help]) => {
+              const active = item.status === value;
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => {
+                    setStock(item.id, value);
+                    onClose();
+                  }}
+                  className={clsx(
+                    "tap relative rounded-2xl border-2 px-3.5 py-3 text-left",
+                    active ? "border-accent bg-accent-soft" : "border-line bg-surface",
+                  )}
+                >
+                  <Pill tone={STATUS_TONE[value]}>{value}</Pill>
+                  <span className="mt-1.5 block text-[13px] leading-snug text-ink-2">{help}</span>
+                  {active && <Check className="absolute top-3 right-3 size-4 text-accent" strokeWidth={3} />}
+                </button>
+              );
+            })}
+          </div>
+        </fieldset>
+        <p className="text-[12px] leading-relaxed text-ink-3">品名や賞味期限を直したいときは、Claude に「○○の賞味期限は10/20」のように伝えてください。</p>
+      </div>
+    </Sheet>
   );
 }

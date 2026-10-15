@@ -110,7 +110,7 @@ export function NavBar() {
           <span className="lg:hidden">設定</span>
           <span className="hidden lg:block">
             アカウント
-            <span className="block text-[11px] text-ink-3">同期：{timeAgo(syncedAt)}</span>
+            <span className="block text-[11px] text-ink-3">更新：{timeAgo(syncedAt)}</span>
           </span>
         </button>
       </nav>
