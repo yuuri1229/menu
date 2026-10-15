@@ -25,7 +25,8 @@ iPhone のホーム画面に追加して、アプリとして使う前提の作�
 
 ```sh
 npm install
-npm run dev     # Firebase を設定しなければデモデータで動く（ログインなし）
+npm run dev                       # 本番の Firebase につながる（ログインが必要）
+NEXT_PUBLIC_DEMO=1 npm run dev    # ログインなしのデモデータで画面を確認
 npm test        # Notion の変換のテスト
 npm run build   # out/ に静的ファイルを書き出す
 ```

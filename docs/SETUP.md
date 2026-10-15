@@ -9,7 +9,7 @@ Notion ──(毎時 Actions)──▶ Firestore ◀──(ログインして読
 
 ## 1. Firebase
 
-1. [Firebase コンソール](https://console.firebase.google.com/) でプロジェクトを作る（Google アナリティクスは不要）。
+1. プロジェクト `menu-webapps` は作成済み（ウェブアプリの設定は `src/lib/config.ts` に入れてあります）。
 2. **Authentication** → 始める → ログイン方法で **メール / パスワード** を有効にする。
 3. **Authentication → ユーザー → ユーザーを追加** で、自分のメールとパスワードを登録する。
 4. **Authentication → 設定 → ユーザーアクション** で **「作成（登録）を有効にする」のチェックを外す**。
@@ -17,9 +17,7 @@ Notion ──(毎時 Actions)──▶ Firestore ◀──(ログインして読
 5. **Authentication → 設定 → 承認済みドメイン** に `yuuri1229.github.io` を追加する。
 6. **Firestore Database** → データベースを作成（本番モード、リージョンは `asia-northeast1` など）。
    **ルール** タブに、このリポジトリの [`firestore.rules`](../firestore.rules) の中身を貼って公開する。
-7. **プロジェクトの設定 → 全般 → マイアプリ** で ウェブアプリ（`</>`）を追加し、表示される
-   `apiKey` `authDomain` `projectId` `appId` を控える。
-8. **プロジェクトの設定 → サービスアカウント → 新しい秘密鍵の生成** で JSON をダウンロードする。
+7. **プロジェクトの設定 → サービスアカウント → 新しい秘密鍵の生成** で JSON をダウンロードする。
 
 ## 2. Notion
 
@@ -37,12 +35,7 @@ Notion ──(毎時 Actions)──▶ Firestore ◀──(ログインして読
 | Secret | `NOTION_TOKEN` | Notion のシークレット |
 | Secret | `FIREBASE_SERVICE_ACCOUNT` | サービスアカウントの JSON（ファイルの中身をそのまま貼る） |
 | Secret | `ALLOWED_EMAILS` | サイトを見てよいメール（複数はカンマ区切り） |
-| Variable | `FIREBASE_API_KEY` | `apiKey` |
-| Variable | `FIREBASE_AUTH_DOMAIN` | `authDomain` |
-| Variable | `FIREBASE_PROJECT_ID` | `projectId` |
-| Variable | `FIREBASE_APP_ID` | `appId` |
-
-Web 用の Firebase 設定（Variable）はブラウザに配られる値なので秘密ではありません。
+Web 用の Firebase 設定（`apiKey` など）はブラウザに配られる値なので秘密ではなく、コードに入れてあります。
 データを守っているのは Firestore のルールです。
 
 続けて:

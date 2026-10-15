@@ -26,18 +26,9 @@ jobs:
       - id: pages
         uses: actions/configure-pages@v5
       - run: npm ci
-      - name: Firebase の設定を確認
-        run: |
-          if [ -z "${{ vars.FIREBASE_API_KEY }}" ] || [ -z "${{ vars.FIREBASE_PROJECT_ID }}" ]; then
-            echo "::warning::リポジトリの Variables に FIREBASE_* が無いため、デモデータのサイトとして公開します（docs/SETUP.md を参照）"
-          fi
       - run: npm run build
         env:
           NEXT_PUBLIC_BASE_PATH: ${{ steps.pages.outputs.base_path }}
-          NEXT_PUBLIC_FIREBASE_API_KEY: ${{ vars.FIREBASE_API_KEY }}
-          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ vars.FIREBASE_AUTH_DOMAIN }}
-          NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
-          NEXT_PUBLIC_FIREBASE_APP_ID: ${{ vars.FIREBASE_APP_ID }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: out

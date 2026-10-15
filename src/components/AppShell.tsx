@@ -41,7 +41,7 @@ function Frame({ children }: { children: ReactNode }) {
         <main className="mx-auto w-full max-w-3xl px-4 pb-32 md:px-8 md:pb-16 pt-safe">
           {demo && (
             <div className="mt-3 rounded-2xl bg-warn-soft px-4 py-2.5 text-[13px] text-warn">
-              デモデータを表示しています（Firebase が未設定のビルド）
+              デモデータを表示しています（NEXT_PUBLIC_DEMO=1 のビルド）
             </div>
           )}
           {error && (
