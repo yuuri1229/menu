@@ -97,6 +97,7 @@ export function sampleSnapshot(): Snapshot {
       main,
       sides,
       memo,
+      recipe: "",
       genre,
       minutes,
       done: addDays(mon, i) < today,

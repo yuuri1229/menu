@@ -1,12 +1,14 @@
 "use client";
 
 import clsx from "clsx";
-import { Check, CircleCheck, Clock, Lightbulb, Pencil, ShoppingBasket, Sparkles } from "lucide-react";
+import { Check, ChefHat, CircleCheck, Clock, Lightbulb, Pencil, ShoppingBasket, Sparkles } from "lucide-react";
 import { useData } from "@/lib/data";
 import { mdw, wd } from "@/lib/date";
 import { yen } from "@/lib/format";
+import { parseMarkdown } from "@/lib/markdown";
 import { isBento, memoSentences, SLOT_META, splitTitle, titleTag } from "@/lib/meals";
 import type { Meal, Slot } from "@/lib/types";
+import { Blocks } from "./NoteBlocks";
 import { Pill, Sheet } from "./ui";
 
 const TONE_BAR = { morning: "bg-morning", noon: "bg-noon", night: "bg-night" } as const;
@@ -214,6 +216,18 @@ export function MealSheet({ meal: opened, onClose }: { meal: Meal | null; onClos
                 </li>
               ))}
             </ul>
+          </section>
+        )}
+
+        {meal.recipe?.trim() && (
+          <section>
+            <h3 className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-ink-2">
+              <ChefHat className="size-4" />
+              作り方
+            </h3>
+            <div className="text-[14px] leading-relaxed [&_h2]:mt-4 [&_h2]:text-[15px] [&_h3]:mt-3 [&_h3]:text-[14px] [&_h4]:mt-3 [&_h4]:text-[14px]">
+              <Blocks blocks={parseMarkdown(meal.recipe)} />
+            </div>
           </section>
         )}
       </div>

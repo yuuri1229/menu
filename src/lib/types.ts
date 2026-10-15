@@ -11,6 +11,8 @@ export interface Meal {
   main: string;
   sides: string;
   memo: string;
+  /** 材料・作り方・ポイント（Markdown） */
+  recipe: string;
   genre: string | null;
   minutes: number | null;
   done: boolean;

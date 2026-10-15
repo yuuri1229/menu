@@ -24,6 +24,7 @@ export const SCHEMA = {
     main: "string",
     sides: "string",
     memo: "string",
+    recipe: "string",
     genre: "string?",
     minutes: "number?",
     done: "bool",
