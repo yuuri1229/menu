@@ -2,8 +2,9 @@
 // こんだて帖のデータ（Firestore）を読み書きする CLI。Claude はこれで献立・買い物・在庫を更新し、
 // アプリは同じデータをリアルタイムで表示する。使い方は `node scripts/db.mjs help`。
 //
-// 認証：環境変数 FIREBASE_SERVICE_ACCOUNT（サービスアカウント鍵の JSON 文字列）か、
-// GOOGLE_APPLICATION_CREDENTIALS（鍵ファイルのパス）。鍵はリポジトリに置かない。
+// 認証：環境変数 FIREBASE_CLIENT_EMAIL と FIREBASE_PRIVATE_KEY（鍵ファイルの client_email・private_key）、
+// FIREBASE_SERVICE_ACCOUNT（鍵の JSON 文字列）、GOOGLE_APPLICATION_CREDENTIALS（鍵ファイルのパス）のどれか。
+// 鍵はリポジトリに置かない。
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { COLLECTIONS, checkRefs, validate } from "./schema.mjs";
@@ -48,7 +49,20 @@ if (!cmd || cmd === "help" || flags.has("--help")) {
 const { initializeApp, cert, applicationDefault } = await import("firebase-admin/app");
 const { getFirestore, FieldValue } = await import("firebase-admin/firestore");
 
+/** 環境変数の値の前後に付いた引用符を外す（鍵ファイルから "…" ごとコピーしても読めるように） */
+const unquote = (s) => s.trim().replace(/^"(.*)",?$/s, "$1");
+
 function credential() {
+  // 改行を入れられない入力欄向け：鍵ファイルの client_email と private_key を1行ずつ
+  const email = process.env.FIREBASE_CLIENT_EMAIL;
+  const key = process.env.FIREBASE_PRIVATE_KEY;
+  if (email && key) {
+    return cert({
+      projectId: process.env.FIREBASE_PROJECT_ID || "menu-webapps",
+      clientEmail: unquote(email),
+      privateKey: unquote(key).replace(/\\n/g, "\n"),
+    });
+  }
   const raw = process.env.FIREBASE_SERVICE_ACCOUNT;
   if (raw) {
     try {
@@ -59,7 +73,8 @@ function credential() {
   }
   if (process.env.GOOGLE_APPLICATION_CREDENTIALS) return applicationDefault();
   fail(
-    "Firebase の鍵がありません。環境変数 FIREBASE_SERVICE_ACCOUNT に、サービスアカウント鍵（JSON）の中身を入れてください。\n" +
+    "Firebase の鍵がありません。サービスアカウント鍵（JSON）の client_email と private_key を、環境変数\n" +
+      "FIREBASE_CLIENT_EMAIL と FIREBASE_PRIVATE_KEY に1行ずつ入れてください（JSON 全体を FIREBASE_SERVICE_ACCOUNT に入れても可）。\n" +
       "Claude のプロジェクトでは「プロジェクト設定 → クラウド環境 → 環境変数」、GitHub では Secrets に設定します。",
   );
 }

@@ -11,8 +11,10 @@ npm ci
 node scripts/db.mjs help
 ```
 
-鍵は環境変数 `FIREBASE_SERVICE_ACCOUNT`（プロジェクト設定 → クラウド環境）から読みます。無ければ書き込めないので、
-ユーザーに「プロジェクト設定のクラウド環境に FIREBASE_SERVICE_ACCOUNT を入れてください」と一度だけ伝えてください。鍵をチャットに貼ってもらわないこと。
+鍵は環境変数 `FIREBASE_CLIENT_EMAIL` と `FIREBASE_PRIVATE_KEY`（鍵ファイルの `client_email`・`private_key` を1行ずつ。
+プロジェクト設定 → クラウド環境）から読みます（JSON 全体を `FIREBASE_SERVICE_ACCOUNT` に入れても可）。無ければ書き込めないので、
+ユーザーに「プロジェクト設定のクラウド環境に FIREBASE_CLIENT_EMAIL と FIREBASE_PRIVATE_KEY を入れてください」と一度だけ伝えてください。
+鍵をチャットに貼ってもらわないこと。
 
 ## いつも守ること
 

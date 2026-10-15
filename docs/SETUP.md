@@ -24,7 +24,7 @@ Claude ──(scripts/db.mjs)──▶ Firestore ◀──(ログインして読
 
 | 場所 | 名前 | 用途 |
 | --- | --- | --- |
-| Claude のプロジェクト設定 → クラウド環境 → 環境変数 | `FIREBASE_SERVICE_ACCOUNT` | Claude が献立・レシート・在庫を書き込む |
+| Claude のプロジェクト設定 → クラウド環境 → 環境変数 | `FIREBASE_CLIENT_EMAIL` と `FIREBASE_PRIVATE_KEY`（鍵ファイルの `client_email`・`private_key` の値を1行ずつ。入力欄が1行ずつ読むため） | Claude が献立・レシート・在庫を書き込む |
 | GitHub の Settings → Secrets and variables → Actions | `FIREBASE_SERVICE_ACCOUNT` | `firestore.rules` を変更したときに自動で反映する |
 
 Web 用の Firebase 設定（`apiKey` など）はブラウザに配られる値なので秘密ではなく、コードに入れてあります。
