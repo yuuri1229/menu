@@ -12,8 +12,8 @@ export function PageHeader({ eyebrow, title, children }: { eyebrow?: ReactNode; 
     <header className="pt-6 pb-4 md:pt-10">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          {eyebrow && <p className="text-[13px] font-medium text-ink-3">{eyebrow}</p>}
-          <h1 className="font-display text-[28px] leading-tight font-bold tracking-tight md:text-[32px]">{title}</h1>
+          {eyebrow && <p className="text-[13px] font-light text-ink-2">{eyebrow}</p>}
+          <h1 className="font-display text-[28px] leading-tight font-black tracking-tight md:text-[32px]">{title}</h1>
         </div>
         <button
           type="button"

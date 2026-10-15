@@ -4,7 +4,7 @@ import { AppShell } from "@/components/AppShell";
 import "./globals.css";
 
 const zenMaru = Zen_Maru_Gothic({
-  weight: ["500", "700"],
+  weight: ["300", "400", "500", "700", "900"],
   subsets: ["latin"],
   variable: "--font-zen-maru",
   display: "swap",

@@ -61,8 +61,9 @@
 }
 
 @theme inline {
-  --font-sans: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic UI", system-ui, sans-serif;
-  --font-display: var(--font-zen-maru), "Hiragino Maru Gothic ProN", var(--font-sans);
+  /* 全体を Google Fonts の Zen Maru Gothic にする。読み込み前は近い丸ゴシックで代わりに表示 */
+  --font-sans: var(--font-zen-maru), "Zen Maru Gothic", "Hiragino Maru Gothic ProN", "Hiragino Sans", sans-serif;
+  --font-display: var(--font-sans);
   --color-bg: var(--bg);
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
