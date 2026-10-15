@@ -1,0 +1,210 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #f6f1e9;
+  --surface: #ffffff;
+  --surface-2: #faf6f0;
+  --surface-3: #f0e9de;
+  --ink: #2a241f;
+  --ink-2: #6b6158;
+  --ink-3: #9d9389;
+  --line: #ebe3d7;
+  --accent: #df6a2e;
+  --accent-ink: #ffffff;
+  --accent-soft: #fbe6d9;
+  --morning: #e39a1f;
+  --morning-soft: #fcefd6;
+  --noon: #3f9963;
+  --noon-soft: #e0f1e6;
+  --night: #5865c8;
+  --night-soft: #e5e8fa;
+  --danger: #d4483b;
+  --danger-soft: #fbe3e0;
+  --warn: #c98a12;
+  --warn-soft: #fbf0d4;
+  --ok: #3a9461;
+  --ok-soft: #e0f1e6;
+  --shadow: 0 1px 2px rgb(60 40 20 / 0.04), 0 4px 16px rgb(60 40 20 / 0.06);
+  --shadow-lg: 0 8px 40px rgb(60 40 20 / 0.16);
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #15120f;
+    --surface: #1f1b17;
+    --surface-2: #26211c;
+    --surface-3: #2f2923;
+    --ink: #f4eee7;
+    --ink-2: #b9aea3;
+    --ink-3: #82786e;
+    --line: #322b25;
+    --accent: #f07d45;
+    --accent-ink: #1b120c;
+    --accent-soft: #3b2417;
+    --morning: #f2b14a;
+    --morning-soft: #3a2c14;
+    --noon: #5fbf86;
+    --noon-soft: #17301f;
+    --night: #8b96f0;
+    --night-soft: #1f2242;
+    --danger: #f07468;
+    --danger-soft: #3d1c19;
+    --warn: #e6b04a;
+    --warn-soft: #3a2d12;
+    --ok: #5fbf86;
+    --ok-soft: #17301f;
+    --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 4px 16px rgb(0 0 0 / 0.25);
+    --shadow-lg: 0 8px 40px rgb(0 0 0 / 0.5);
+    color-scheme: dark;
+  }
+}
+
+@theme inline {
+  --font-sans: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic UI", system-ui, sans-serif;
+  --font-display: var(--font-zen-maru), "Hiragino Maru Gothic ProN", var(--font-sans);
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --color-morning: var(--morning);
+  --color-morning-soft: var(--morning-soft);
+  --color-noon: var(--noon);
+  --color-noon-soft: var(--noon-soft);
+  --color-night: var(--night);
+  --color-night-soft: var(--night-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-ok: var(--ok);
+  --color-ok-soft: var(--ok-soft);
+  --shadow-card: var(--shadow);
+  --shadow-float: var(--shadow-lg);
+  --radius-card: 1.25rem;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-feature-settings: "palt";
+  line-height: 1.6;
+  overscroll-behavior-y: none;
+}
+
+/* 数字は等幅にして金額や日付の桁をそろえる */
+.num {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum", "palt";
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+.card {
+  background: var(--surface);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow);
+}
+
+.tap {
+  transition: transform 160ms cubic-bezier(0.2, 0.8, 0.2, 1), background-color 160ms, opacity 160ms;
+}
+.tap:active {
+  transform: scale(0.98);
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.rise {
+  animation: rise 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.sheet-in {
+  animation: sheet-in 320ms cubic-bezier(0.2, 0.9, 0.2, 1) both;
+}
+.fade-in {
+  animation: fade-in 200ms ease-out both;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+.skeleton {
+  background: linear-gradient(90deg, var(--surface-3) 25%, var(--surface-2) 50%, var(--surface-3) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite linear;
+  border-radius: 0.75rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    transition-duration: 1ms !important;
+  }
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
