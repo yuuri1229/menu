@@ -61,8 +61,8 @@
 }
 
 @theme inline {
-  /* 全体を Google Fonts の Zen Maru Gothic にする。読み込み前は近い丸ゴシックで代わりに表示 */
-  --font-sans: var(--font-zen-maru), "Zen Maru Gothic", "Hiragino Maru Gothic ProN", "Hiragino Sans", sans-serif;
+  /* 英数字は Roboto、日本語は Noto Sans JP（Google Fonts）。読み込み前は端末のゴシック体で代わりに表示 */
+  --font-sans: var(--font-roboto), var(--font-noto-sans-jp), "Roboto", "Noto Sans JP", "Hiragino Sans", sans-serif;
   --font-display: var(--font-sans);
   --color-bg: var(--bg);
   --color-surface: var(--surface);

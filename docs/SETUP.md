@@ -60,3 +60,9 @@ node scripts/db.mjs check
 - **ログインできるがデータが出ない**：`node scripts/db.mjs members` にログインしたメールが出るか。なければ `members add`。
 - **「変更を保存する権限がありません」**：`rules:deploy` でルールを反映したか。
 - **ログイン画面で auth/unauthorized-domain**：承認済みドメインに `yuuri1229.github.io` を追加したか。
+
+## プッシュ通知
+
+通知の鍵は `node scripts/db.mjs push:keys` で一度だけ作ってあります（秘密鍵は Firestore の `secrets/webpush`、公開鍵は `src/lib/config.ts`）。
+受け取る側は、iPhone ならホーム画面に追加したアイコンからアプリを開き、右上のアカウント →「通知」をオンにします（iOS 16.4 以降）。
+毎晩20時のリマインド（`.github/workflows/notify.yml`）は、GitHub の Secrets に `FIREBASE_SERVICE_ACCOUNT` があるときだけ動きます。

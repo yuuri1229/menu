@@ -51,6 +51,7 @@ node scripts/db.mjs help
 2. 在庫（`status` が十分の物は買わない・余り物を優先）、今週の明細の実際の価格、`memo` の【実績】を見て、前提条件に沿って翌週分を考える。
 3. 食材（買い物回ごと）→ 献立 → 週のノート（予算・回ごとの試算・炊飯スケジュール・買い物リスト）の順に `upsert` する。
 4. `node scripts/db.mjs check` で確かめ、アプリの献立タブに出ることを伝える。
+5. `node scripts/db.mjs notify "来週の献立ができました" "買い物① は 10/19(月)。…" --url week/` で端末に知らせる。
 
 **レシートの記録（「記録して」）**
 1. 1品1件で `purchases` に入れ、対応する食材の id を `ingredientIds` に入れる。外税のレシートは税込に直す。
@@ -59,6 +60,14 @@ node scripts/db.mjs help
 
 **「○○が切れた」「○○は食べられた」などの連絡**
 在庫は `status` を変える。食べた結果は該当する献立の `memo` に【実績】として足し、ルールが変わるなら `notes/rules` の本文も直す。
+
+## プッシュ通知
+
+アプリの「アカウント」で通知をオンにした端末（iPhone はホーム画面に追加したアイコンから開いたときだけ）に届きます。
+- `node scripts/db.mjs notify <タイトル> [本文] [--url パス]` … 全端末に送る。ユーザーに知らせたい更新をしたときに使う（送りすぎない）。
+- `node scripts/db.mjs notify:remind` … 明日の買い物（未購入の食材）と献立メモの段取りを1通にまとめて送る。毎晩20時に GitHub Actions（notify.yml）が実行する。
+- クラウド環境から Apple の通知サーバー（web.push.apple.com）に届かず「送れませんでした」と出たら、GitHub の Actions「プッシュ通知を送る」（notify.yml）を title・body・url を入れて workflow_dispatch で実行する（GitHub MCP の actions_run_trigger）。
+- `node scripts/db.mjs push` で受け取る端末の一覧。秘密鍵は Firestore の `secrets/webpush`（アプリからは読めない）。
 
 ## コードを変えるとき
 

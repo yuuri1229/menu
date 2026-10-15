@@ -1,7 +1,7 @@
 rules_version = '2';
 
 // こんだて帖のデータは、members に登録されたアカウントだけが読める。
-// アプリから書き換えられるのは「作った」「買った」「在庫の状態」の3項目だけ。
+// アプリから書き換えられるのは「作った」「買った」「在庫の状態」の3項目と、通知を受け取る自分の端末の登録だけ。
 // それ以外（献立づくり・レシートの記録など）は Claude が scripts/db.mjs で書く
 // （サービスアカウントはこのルールの対象外）。
 // 変更したら scripts/schema.mjs の MEMBER_WRITABLE も合わせ、`node scripts/db.mjs rules:deploy` で反映する。
@@ -19,6 +19,24 @@ service cloud.firestore {
     match /members/{uid} {
       allow read: if request.auth != null && request.auth.uid == uid;
       allow write: if false;
+    }
+
+    // 通知を受け取る端末。メンバーが自分の端末だけを登録・削除できる（送るのは scripts/db.mjs）
+    match /pushSubscriptions/{id} {
+      function validSub() {
+        return request.resource.data.uid == request.auth.uid
+          && request.resource.data.keys().hasOnly(['uid', 'endpoint', 'keys', 'device', 'createdAt'])
+          && request.resource.data.endpoint is string
+          && request.resource.data.endpoint.matches('https://.*');
+      }
+      allow create: if isMember() && validSub();
+      allow update: if isMember() && resource.data.uid == request.auth.uid && validSub();
+      allow read, delete: if isMember() && resource.data.uid == request.auth.uid;
+    }
+
+    // 通知の秘密鍵など。サービスアカウント（scripts/db.mjs）だけが読む
+    match /secrets/{id} {
+      allow read, write: if false;
     }
 
     match /meta/{id} {

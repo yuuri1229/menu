@@ -1,12 +1,21 @@
 import type { Metadata, Viewport } from "next";
-import { Zen_Maru_Gothic } from "next/font/google";
+import { Noto_Sans_JP, Roboto } from "next/font/google";
 import { AppShell } from "@/components/AppShell";
 import "./globals.css";
 
-const zenMaru = Zen_Maru_Gothic({
-  weight: ["300", "400", "500", "700", "900"],
+// 英数字は Roboto、日本語は Noto Sans JP。どちらも可変フォント（太さを自由に選べる）。
+// Roboto を先に並べ、Roboto にない日本語の文字だけ Noto Sans JP で表示する
+const roboto = Roboto({
   subsets: ["latin"],
-  variable: "--font-zen-maru",
+  axes: ["wdth"],
+  variable: "--font-roboto",
+  display: "swap",
+});
+
+// 日本語の文字は unicode-range ごとに分かれていて、画面に出た文字の分だけ読み込まれる
+const notoSansJp = Noto_Sans_JP({
+  subsets: ["latin"],
+  variable: "--font-noto-sans-jp",
   display: "swap",
   preload: false,
 });
@@ -40,7 +49,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ja" className={zenMaru.variable}>
+    <html lang="ja" className={`${roboto.variable} ${notoSansJp.variable}`}>
       <body>
         <AppShell>{children}</AppShell>
       </body>
