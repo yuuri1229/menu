@@ -1,0 +1,22 @@
+rules_version = '2';
+
+// Notion から同期したデータは、members に登録されたアカウントだけが読める。
+// 書き込みは同期スクリプト（サービスアカウント。ルールの対象外）だけが行う。
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isMember() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/members/$(request.auth.uid));
+    }
+
+    match /members/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    match /{collection}/{id} {
+      allow read: if isMember() && collection in ['meals', 'ingredients', 'purchases', 'inventory', 'notes', 'meta'];
+      allow write: if false;
+    }
+  }
+}
