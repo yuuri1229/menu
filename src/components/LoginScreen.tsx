@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import clsx from "clsx";
 import { ArrowRight, Eye, EyeOff, LoaderCircle, Lock, Mail } from "lucide-react";
 import { authErrorMessage, useAuth } from "@/lib/auth";
+import { InstallHint } from "./InstallHint";
 import { BrandMark } from "./ui";
 
 export function LoginScreen() {
@@ -144,6 +145,8 @@ export function LoginScreen() {
             {mode === "login" ? "パスワードを忘れた場合" : "ログインに戻る"}
           </button>
         </form>
+
+        <InstallHint dismissible={false} />
 
         <p className="rise mt-6 text-center text-[12px] text-ink-3" style={{ animationDelay: "160ms" }}>
           このサイトは招待されたアカウントだけが使えます

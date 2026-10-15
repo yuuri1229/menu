@@ -8,7 +8,8 @@ import { Blocks, Rich, richToText, splitSections } from "@/components/NoteBlocks
 import { PageHeader } from "@/components/PageHeader";
 import { Empty, LoadingCards, Pill } from "@/components/ui";
 import { useData } from "@/lib/data";
-import { md, timeAgo, todayJST } from "@/lib/date";
+import { useNow } from "@/lib/now";
+import { md, timeAgo } from "@/lib/date";
 import type { Note } from "@/lib/types";
 
 export default function NotesPage() {
@@ -31,7 +32,7 @@ function Notes() {
 }
 
 function NoteList({ notes }: { notes: Note[] }) {
-  const today = todayJST();
+  const { today } = useNow();
   const sorted = useMemo(() => {
     const rank = { rules: 0, week: 1, page: 2 } as const;
     return [...notes].sort((a, b) => rank[a.kind] - rank[b.kind] || (b.start ?? "").localeCompare(a.start ?? ""));

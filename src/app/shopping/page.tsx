@@ -8,7 +8,8 @@ import { Check, ChevronLeft, ChevronRight, NotebookText, RotateCcw, ShoppingBask
 import { PageHeader } from "@/components/PageHeader";
 import { Empty, LoadingCards, Progress, Segmented } from "@/components/ui";
 import { useData } from "@/lib/data";
-import { md, mdw, relativeDay, todayJST, weekStart } from "@/lib/date";
+import { useNow } from "@/lib/now";
+import { md, mdw, relativeDay, weekStart } from "@/lib/date";
 import { groupBy, sum, yen } from "@/lib/format";
 import type { Ingredient } from "@/lib/types";
 
@@ -56,7 +57,7 @@ function Shopping() {
   const { ingredients, notes, status } = useData();
   const [checks, setChecks] = useLocalChecks();
   const [hideDone, setHideDone] = useState(false);
-  const today = todayJST();
+  const { today } = useNow();
 
   const trips = useMemo<Trip[]>(() => {
     const byLabel = groupBy(

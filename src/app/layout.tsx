@@ -17,7 +17,10 @@ export const metadata: Metadata = {
   title: "こんだて帖",
   description: "1週間の献立・買い物・在庫をひと目で",
   manifest: `${basePath}/manifest.webmanifest`,
+  // ホーム画面に追加して全画面で使う前提。ステータスバーの色は theme-color（ライト/ダーク別）に合わせる
   appleWebApp: { capable: true, title: "こんだて帖", statusBarStyle: "default" },
+  other: { "apple-mobile-web-app-capable": "yes" },
+  formatDetection: { telephone: false, date: false, address: false, email: false },
   robots: { index: false, follow: false },
   icons: {
     icon: `${basePath}/icon.svg`,

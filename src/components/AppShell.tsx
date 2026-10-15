@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from "react";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { DataProvider, useData } from "@/lib/data";
+import { NowProvider } from "@/lib/now";
 import { LoginScreen } from "./LoginScreen";
 import { NavBar } from "./NavBar";
 import { SettingsSheet } from "./SettingsSheet";
@@ -23,7 +24,9 @@ function Gate({ children }: { children: ReactNode }) {
   if (state.status === "signedOut") return <LoginScreen />;
   return (
     <DataProvider>
-      <Frame>{children}</Frame>
+      <NowProvider>
+        <Frame>{children}</Frame>
+      </NowProvider>
     </DataProvider>
   );
 }

@@ -6,13 +6,14 @@ import { Receipt, Store } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { Empty, LoadingCards, Pill, Progress, SectionTitle } from "@/components/ui";
 import { useData } from "@/lib/data";
-import { addDays, md, mdw, todayJST, weekStart } from "@/lib/date";
+import { useNow } from "@/lib/now";
+import { addDays, md, mdw, weekStart } from "@/lib/date";
 import { groupBy, sum, yen } from "@/lib/format";
 import { budgetTone, countsToBudget, isRice, purchaseDate, spendByWeek, WEEKLY_BUDGET } from "@/lib/spending";
 
 export default function SpendingPage() {
   const { purchases, status } = useData();
-  const today = todayJST();
+  const { today } = useNow();
   const thisWeek = weekStart(today);
   const byWeek = useMemo(() => spendByWeek(purchases), [purchases]);
   const [week, setWeek] = useState(thisWeek);

@@ -91,7 +91,7 @@ export function Sheet({
             <X className="size-[18px]" />
           </button>
         </div>
-        <div data-scroll className="overflow-y-auto overscroll-contain px-5 pb-6">
+        <div data-scroll className="overflow-y-auto overscroll-contain px-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
           {children}
         </div>
         {footer && <div className="border-t border-line px-5 py-3 pb-safe">{footer}</div>}

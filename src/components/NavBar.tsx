@@ -18,6 +18,13 @@ const TABS: { href: string; label: string; icon: LucideIcon }[] = [
   { href: "/spending", label: "家計", icon: Wallet },
 ];
 
+/** iPhone のアプリと同じく、いま開いているタブをもう一度押すと先頭へ戻る */
+function scrollTopIfActive(e: React.MouseEvent, active: boolean) {
+  if (!active) return;
+  e.preventDefault();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
 function useActive() {
   const path = (usePathname() ?? "/").replace(/\/+$/, "") || "/";
   return (href: string) => (href === "/" ? path === "/" : path === href || path.startsWith(`${href}/`));
@@ -43,6 +50,7 @@ export function NavBar() {
                 <Link
                   href={href}
                   aria-current={active ? "page" : undefined}
+                  onClick={(e) => scrollTopIfActive(e, active)}
                   className={clsx(
                     "tap flex flex-col items-center gap-0.5 pt-2 pb-1.5 text-[11px] font-medium",
                     active ? "text-accent" : "text-ink-3",

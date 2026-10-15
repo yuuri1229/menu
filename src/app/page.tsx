@@ -5,10 +5,12 @@ import { useMemo, useState } from "react";
 import clsx from "clsx";
 import { ChevronRight, Lightbulb, Refrigerator, ShoppingBasket, TriangleAlert, Wallet } from "lucide-react";
 import { MealHero, MealRow, MealSheet } from "@/components/Meal";
+import { InstallHint } from "@/components/InstallHint";
 import { PageHeader } from "@/components/PageHeader";
 import { LoadingCards, Progress, SectionTitle } from "@/components/ui";
 import { useData } from "@/lib/data";
-import { addDays, hourJST, mdJa, mdw, relativeDay, todayJST, wd, weekStart } from "@/lib/date";
+import { useNow } from "@/lib/now";
+import { addDays, mdJa, mdw, relativeDay, wd, weekStart } from "@/lib/date";
 import { sum, yen } from "@/lib/format";
 import { currentSlot, mealsOn, prepTips, SLOT_META } from "@/lib/meals";
 import { budgetTone, spendByWeek, WEEKLY_BUDGET } from "@/lib/spending";
@@ -25,9 +27,8 @@ export default function TodayPage() {
   const { meals, ingredients, inventory, purchases, status } = useData();
   const [open, setOpen] = useState<Meal | null>(null);
 
-  const today = todayJST();
+  const { today, hour } = useNow();
   const tomorrow = addDays(today, 1);
-  const hour = hourJST();
 
   const todayMeals = useMemo(() => mealsOn(meals, today), [meals, today]);
   const tomorrowMeals = useMemo(() => mealsOn(meals, tomorrow), [meals, tomorrow]);
@@ -64,6 +65,9 @@ export default function TodayPage() {
   return (
     <>
       <PageHeader eyebrow={greeting(hour)} title={`${mdJa(today)}（${wd(today)}）`} />
+      <div className="-mt-1 mb-3 empty:hidden">
+        <InstallHint />
+      </div>
 
       {status === "loading" ? (
         <LoadingCards />

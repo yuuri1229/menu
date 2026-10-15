@@ -8,7 +8,8 @@ import { MealRow, MealSheet } from "@/components/Meal";
 import { PageHeader } from "@/components/PageHeader";
 import { Empty, LoadingCards } from "@/components/ui";
 import { useData } from "@/lib/data";
-import { addDays, md, todayJST, wd, weekDays, weekStart } from "@/lib/date";
+import { useNow } from "@/lib/now";
+import { addDays, md, wd, weekDays, weekStart } from "@/lib/date";
 import { sum } from "@/lib/format";
 import { mealsOn } from "@/lib/meals";
 import { SLOTS, type Meal } from "@/lib/types";
@@ -31,7 +32,7 @@ export default function WeekPage() {
 function Week() {
   const params = useSearchParams();
   const { meals, status } = useData();
-  const today = todayJST();
+  const { today } = useNow();
   const thisWeek = weekStart(today);
   const initial = params.get("w");
   const [start, setStart] = useState(initial && /^\d{4}-\d{2}-\d{2}$/.test(initial) ? weekStart(initial) : thisWeek);

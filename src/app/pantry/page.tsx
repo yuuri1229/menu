@@ -7,7 +7,8 @@ import { Fish, Refrigerator, Search, Snowflake, TriangleAlert, X } from "lucide-
 import { PageHeader } from "@/components/PageHeader";
 import { Empty, LoadingCards, Pill, type Tone } from "@/components/ui";
 import { useData } from "@/lib/data";
-import { diffDays, mdw, todayJST } from "@/lib/date";
+import { useNow } from "@/lib/now";
+import { diffDays, mdw } from "@/lib/date";
 import { groupBy } from "@/lib/format";
 import type { InventoryItem, StockStatus } from "@/lib/types";
 
@@ -30,7 +31,7 @@ function Pantry() {
   const { inventory, status } = useData();
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<Filter>((params.get("filter") as Filter) ?? "all");
-  const today = todayJST();
+  const { today } = useNow();
 
   const counts = {
     all: inventory.length,
