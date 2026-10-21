@@ -11,7 +11,6 @@ import type { Meal, Slot } from "@/lib/types";
 import { Blocks } from "./NoteBlocks";
 import { Pill, Sheet } from "./ui";
 
-const TONE_BAR = { morning: "bg-morning", noon: "bg-noon", night: "bg-night" } as const;
 const TONE_TEXT = { morning: "text-morning", noon: "text-noon", night: "text-night" } as const;
 
 export function SlotLabel({ slot, meal, className }: { slot: Slot; meal?: Meal; className?: string }) {
@@ -64,7 +63,6 @@ export function MealRow({ meal, slot, onOpen, compact }: { meal?: Meal; slot: Sl
 
 /** 大きく見せる「次のごはん」 */
 export function MealHero({ meal, slot, onOpen, label }: { meal?: Meal; slot: Slot; onOpen: (m: Meal) => void; label: string }) {
-  const meta = SLOT_META[slot];
   if (!meal) {
     return (
       <div className="card p-5">
@@ -76,8 +74,7 @@ export function MealHero({ meal, slot, onOpen, label }: { meal?: Meal; slot: Slo
   }
   const { head, extras } = splitTitle(meal.title);
   return (
-    <button type="button" onClick={() => onOpen(meal)} className="tap card relative block w-full overflow-hidden p-5 text-left">
-      <div className={clsx("absolute inset-y-0 left-0 w-1.5", TONE_BAR[meta.tone])} aria-hidden />
+    <button type="button" onClick={() => onOpen(meal)} className="tap card block w-full p-5 text-left">
       <div className="flex items-center gap-2">
         <p className="text-[13px] font-medium text-ink-3">{label}</p>
         <SlotLabel slot={slot} meal={meal} />
