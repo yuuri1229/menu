@@ -67,9 +67,10 @@ export interface InventoryItem {
   purchasedAt: string | null;
 }
 
-/** 献立の感想。選択肢は scripts/schema.mjs・firestore.rules と同じにする */
-export const VERDICTS = ["好み", "ふつう", "合わない"] as const;
-export type Verdict = (typeof VERDICTS)[number];
+/** 献立の感想。選択肢は scripts/schema.mjs・firestore.rules と同じにする。評価は 1〜5 */
+export const RATINGS = [1, 2, 3, 4, 5] as const;
+export type Rating = (typeof RATINGS)[number];
+export const RATING_LABELS: Record<Rating, string> = { 1: "苦手", 2: "いまいち", 3: "ふつう", 4: "好き", 5: "大好き" };
 export const FEEDBACK_TAGS = ["味が濃い", "味が薄い", "量が多い", "量が少ない", "手間だった", "また食べたい", "苦手な食材"] as const;
 export type FeedbackTag = (typeof FEEDBACK_TAGS)[number];
 export const FEEDBACK_TEXT_MAX = 500;
@@ -82,7 +83,7 @@ export interface Feedback {
   mealTitle: string;
   date: string | null;
   slot: Slot | null;
-  verdict: Verdict;
+  rating: Rating;
   tags: FeedbackTag[];
   text: string;
   uid: string | null;
