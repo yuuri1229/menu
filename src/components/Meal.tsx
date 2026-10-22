@@ -1,13 +1,15 @@
 "use client";
 
 import clsx from "clsx";
-import { Check, ChefHat, CircleCheck, Clock, Lightbulb, Pencil, ShoppingBasket, Sparkles } from "lucide-react";
+import { useState } from "react";
+import { Check, ChefHat, CircleCheck, Clock, Lightbulb, MessageCircleHeart, Pencil, ShoppingBasket, Sparkles } from "lucide-react";
 import { useData } from "@/lib/data";
 import { mdw, wd } from "@/lib/date";
 import { yen } from "@/lib/format";
 import { parseMarkdown } from "@/lib/markdown";
 import { isBento, memoSentences, SLOT_META, splitTitle, titleTag } from "@/lib/meals";
-import type { Meal, Slot } from "@/lib/types";
+import { FEEDBACK_TAGS, FEEDBACK_TEXT_MAX, VERDICTS } from "@/lib/types";
+import type { Feedback, FeedbackTag, Meal, Slot, Verdict } from "@/lib/types";
 import { Blocks } from "./NoteBlocks";
 import { Pill, Sheet } from "./ui";
 
@@ -19,9 +21,13 @@ export function SlotLabel({ slot, meal, className }: { slot: Slot; meal?: Meal; 
   return <Pill tone={meta.tone} className={className}>{label}</Pill>;
 }
 
+const VERDICT_MARK: Record<Verdict, string> = { 好み: "😋", ふつう: "🙂", 合わない: "😣" };
+
 /** 一覧で使う一行の献立 */
 export function MealRow({ meal, slot, onOpen, compact }: { meal?: Meal; slot: Slot; onOpen?: (m: Meal) => void; compact?: boolean }) {
   const meta = SLOT_META[slot];
+  const { feedbackByMeal } = useData();
+  const feedback = meal ? feedbackByMeal.get(meal.id) : undefined;
   if (!meal) {
     return (
       <div className={clsx("flex items-center gap-3 px-4", compact ? "py-2.5" : "py-3")}>
@@ -47,6 +53,11 @@ export function MealRow({ meal, slot, onOpen, compact }: { meal?: Meal; slot: Sl
           <span className="block truncate text-[12px] text-ink-3">{extras.length ? `＋${extras.join("・")}` : meal.sides}</span>
         )}
       </span>
+      {feedback && (
+        <span className="shrink-0 text-[15px]" aria-label={`感想：${feedback.verdict}`}>
+          {VERDICT_MARK[feedback.verdict]}
+        </span>
+      )}
       {meal.done ? (
         <CircleCheck className="size-[18px] shrink-0 text-ok" aria-label="作った" />
       ) : (
@@ -227,7 +238,134 @@ export function MealSheet({ meal: opened, onClose }: { meal: Meal | null; onClos
             </div>
           </section>
         )}
+
+        <FeedbackSection key={meal.id} meal={meal} />
       </div>
     </Sheet>
+  );
+}
+
+/**
+ * 献立の感想。好みに合ったかを選び、必要ならタグとテキストを足して送る。
+ * Firestore の feedback に1献立1件で残り、Claude が「好みの記録」にまとめて次の献立づくりで読む。
+ */
+function FeedbackSection({ meal }: { meal: Meal }) {
+  const { feedbackByMeal, sendFeedback } = useData();
+  const saved = feedbackByMeal.get(meal.id);
+  const [editing, setEditing] = useState(!saved);
+  const [verdict, setVerdict] = useState<Verdict | null>(saved?.verdict ?? null);
+  const [tags, setTags] = useState<FeedbackTag[]>(saved?.tags ?? []);
+  const [text, setText] = useState(saved?.text ?? "");
+
+  const toggleTag = (t: FeedbackTag) => setTags((cur) => (cur.includes(t) ? cur.filter((x) => x !== t) : [...cur, t]));
+  const submit = () => {
+    if (!verdict) return;
+    // 選んだ順ではなく決まった順で残す（読み返しやすいように）
+    sendFeedback(meal, { verdict, tags: FEEDBACK_TAGS.filter((t) => tags.includes(t)), text });
+    setEditing(false);
+  };
+
+  return (
+    <section>
+      <h3 className="mb-2 flex items-center gap-1.5 text-[13px] font-bold text-ink-2">
+        <MessageCircleHeart className="size-4" />
+        感想
+      </h3>
+      {saved && !editing ? (
+        <SavedFeedback feedback={saved} onEdit={() => setEditing(true)} />
+      ) : (
+        <div className="space-y-3 rounded-2xl bg-surface-2 p-4">
+          <p className="text-[13px] text-ink-2">好みに合いましたか？ 次の献立づくりの参考にします。</p>
+          <div role="radiogroup" aria-label="好みに合ったか" className="grid grid-cols-3 gap-2">
+            {VERDICTS.map((v) => (
+              <button
+                key={v}
+                type="button"
+                role="radio"
+                aria-checked={verdict === v}
+                onClick={() => setVerdict(v)}
+                className={clsx(
+                  "tap rounded-xl border py-2.5 text-[14px] font-medium",
+                  verdict === v ? "border-accent bg-accent text-accent-ink" : "border-line bg-surface text-ink-2",
+                )}
+              >
+                <span className="mr-1" aria-hidden>
+                  {VERDICT_MARK[v]}
+                </span>
+                {v}
+              </button>
+            ))}
+          </div>
+          {verdict && (
+            <>
+              <div className="flex flex-wrap gap-1.5" aria-label="当てはまるもの">
+                {FEEDBACK_TAGS.map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    aria-pressed={tags.includes(t)}
+                    onClick={() => toggleTag(t)}
+                    className={clsx(
+                      "tap rounded-full border px-3 py-1 text-[13px]",
+                      tags.includes(t) ? "border-accent bg-accent-soft text-ink" : "border-line bg-surface text-ink-2",
+                    )}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+              <label className="block">
+                <span className="sr-only">感想（任意）</span>
+                <textarea
+                  value={text}
+                  onChange={(e) => setText(e.target.value.slice(0, FEEDBACK_TEXT_MAX))}
+                  rows={3}
+                  placeholder="味の好み・風味・苦手な食材・調味料など（任意）"
+                  className="block w-full resize-none rounded-xl border border-line bg-surface px-3 py-2 text-[16px] leading-relaxed outline-none placeholder:text-ink-3 focus:border-accent"
+                />
+                <span className="num mt-1 block text-right text-[11px] text-ink-3">
+                  {text.length}/{FEEDBACK_TEXT_MAX}
+                </span>
+              </label>
+              <div className="flex gap-2">
+                {saved && (
+                  <button type="button" onClick={() => setEditing(false)} className="tap rounded-xl bg-surface-3 px-4 py-2.5 text-[14px] text-ink-2">
+                    やめる
+                  </button>
+                )}
+                <button type="button" onClick={submit} className="tap flex-1 rounded-xl bg-ink py-2.5 text-[14px] font-bold text-surface">
+                  {saved ? "送り直す" : "感想を送る"}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function SavedFeedback({ feedback, onEdit }: { feedback: Feedback; onEdit: () => void }) {
+  return (
+    <div className="rounded-2xl bg-surface-2 p-4 text-[14px]">
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="font-bold">
+          <span className="mr-1" aria-hidden>
+            {VERDICT_MARK[feedback.verdict]}
+          </span>
+          {feedback.verdict}
+        </span>
+        {feedback.tags.map((t) => (
+          <Pill key={t}>{t}</Pill>
+        ))}
+      </div>
+      {feedback.text && <p className="mt-2 leading-relaxed whitespace-pre-wrap">{feedback.text}</p>}
+      <div className="mt-3 flex items-center justify-between gap-3 text-[12px] text-ink-3">
+        <span>{feedback.reflectedAt ? "好みの記録に反映済み" : "次の献立づくりで読みます"}</span>
+        <button type="button" onClick={onEdit} className="tap rounded-full bg-surface-3 px-3 py-1 text-ink-2">
+          書き直す
+        </button>
+      </div>
+    </div>
   );
 }

@@ -244,5 +244,6 @@ export function sampleSnapshot(): Snapshot {
       { id: "n-week", title: `買い物リスト・予算（${md(mon)}〜${md(addDays(mon, 6))}）`, icon: "🧾", kind: "week", start: mon, end: addDays(mon, 6), markdown: weekNote, blocks: [], editedAt: null },
       { id: "n-rules", title: "前提条件・調理環境・買い物計画", icon: "📋", kind: "rules", start: null, end: null, markdown: rules, blocks: [], editedAt: null },
     ],
+    feedback: [],
   };
 }

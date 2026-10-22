@@ -1,7 +1,7 @@
 rules_version = '2';
 
 // こんだて帖のデータは、members に登録されたアカウントだけが読める。
-// アプリから書き換えられるのは「作った」「買った」「在庫の状態」の3項目と、通知を受け取る自分の端末の登録だけ。
+// アプリから書き換えられるのは「作った」「買った」「在庫の状態」の3項目と、献立の感想、通知を受け取る自分の端末の登録だけ。
 // それ以外（献立づくり・レシートの記録など）は Claude が scripts/db.mjs で書く
 // （サービスアカウントはこのルールの対象外）。
 // 変更したら scripts/schema.mjs の MEMBER_WRITABLE も合わせ、`node scripts/db.mjs rules:deploy` で反映する。
@@ -57,6 +57,29 @@ service cloud.firestore {
     match /meals/{id} {
       allow read: if isMember();
       allow update: if isMember() && onlyChanges('done') && request.resource.data.done is bool;
+    }
+
+    // 献立の感想。id は献立の id（1献立1件、送り直すと上書き）。項目と選択肢は scripts/schema.mjs と同じ。
+    // reflectedAt（好みの記録にまとめた時刻）は Claude が付け、アプリは送り直すときに空へ戻すだけ
+    match /feedback/{mealId} {
+      function validFeedback() {
+        let d = request.resource.data;
+        return d.keys().hasOnly(['mealId', 'mealTitle', 'date', 'slot', 'verdict', 'tags', 'text', 'uid', 'updatedAt', 'reflectedAt'])
+          && d.mealId == mealId
+          && exists(/databases/$(database)/documents/meals/$(mealId))
+          && d.uid == request.auth.uid
+          && d.verdict in ['好み', 'ふつう', '合わない']
+          && d.tags is list && d.tags.size() <= 7
+          && d.tags.hasOnly(['味が濃い', '味が薄い', '量が多い', '量が少ない', '手間だった', 'また食べたい', '苦手な食材'])
+          && d.text is string && d.text.size() <= 500
+          && d.mealTitle is string
+          && (d.date == null || d.date is string)
+          && (d.slot == null || d.slot in ['朝食', '昼食', '夕食'])
+          && d.updatedAt is string
+          && d.reflectedAt == null;
+      }
+      allow read: if isMember();
+      allow create, update: if isMember() && validFeedback();
     }
 
     match /ingredients/{id} {

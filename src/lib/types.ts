@@ -67,6 +67,30 @@ export interface InventoryItem {
   purchasedAt: string | null;
 }
 
+/** 献立の感想。選択肢は scripts/schema.mjs・firestore.rules と同じにする */
+export const VERDICTS = ["好み", "ふつう", "合わない"] as const;
+export type Verdict = (typeof VERDICTS)[number];
+export const FEEDBACK_TAGS = ["味が濃い", "味が薄い", "量が多い", "量が少ない", "手間だった", "また食べたい", "苦手な食材"] as const;
+export type FeedbackTag = (typeof FEEDBACK_TAGS)[number];
+export const FEEDBACK_TEXT_MAX = 500;
+
+export interface Feedback {
+  /** 献立の id と同じ */
+  id: string;
+  mealId: string;
+  /** 送った時点の献立名・日付・朝昼夜（献立が組み直されても何への感想か分かるように） */
+  mealTitle: string;
+  date: string | null;
+  slot: Slot | null;
+  verdict: Verdict;
+  tags: FeedbackTag[];
+  text: string;
+  uid: string | null;
+  updatedAt: string | null;
+  /** Claude が好みの記録にまとめた時刻（まだなら null） */
+  reflectedAt: string | null;
+}
+
 export interface RichText {
   t: string;
   b?: boolean;
@@ -109,4 +133,5 @@ export interface Snapshot {
   purchases: Purchase[];
   inventory: InventoryItem[];
   notes: Note[];
+  feedback: Feedback[];
 }
