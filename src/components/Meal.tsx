@@ -2,14 +2,14 @@
 
 import clsx from "clsx";
 import { useState } from "react";
-import { Check, ChefHat, CircleCheck, Clock, Lightbulb, MessageCircleHeart, Pencil, ShoppingBasket, Sparkles } from "lucide-react";
+import { Check, ChefHat, CircleCheck, Clock, Lightbulb, MessageCircleHeart, Minus, Pencil, ShoppingBasket, Sparkles, ThumbsDown, ThumbsUp } from "lucide-react";
 import { useData } from "@/lib/data";
 import { mdw, wd } from "@/lib/date";
 import { yen } from "@/lib/format";
 import { parseMarkdown } from "@/lib/markdown";
 import { isBento, memoSentences, SLOT_META, splitTitle, titleTag } from "@/lib/meals";
-import { FEEDBACK_TAGS, FEEDBACK_TEXT_MAX, RATING_LABELS, RATINGS } from "@/lib/types";
-import type { Feedback, FeedbackTag, Meal, Rating, Slot } from "@/lib/types";
+import { FEEDBACK_TAGS, FEEDBACK_TEXT_MAX, VERDICTS } from "@/lib/types";
+import type { Feedback, FeedbackTag, Meal, Slot, Verdict } from "@/lib/types";
 import { Blocks } from "./NoteBlocks";
 import { Pill, Sheet } from "./ui";
 
@@ -21,8 +21,14 @@ export function SlotLabel({ slot, meal, className }: { slot: Slot; meal?: Meal; 
   return <Pill tone={meta.tone} className={className}>{label}</Pill>;
 }
 
-/** 一覧の印の色（低い評価は赤、ふつうは控えめに） */
-const RATING_TONE = { 1: "danger", 2: "danger", 3: "neutral", 4: "accent", 5: "accent" } as const satisfies Record<Rating, string>;
+/** 感想の評価のアイコン（絵文字は使わない） */
+const VERDICT_ICON = { 好み: ThumbsUp, ふつう: Minus, 合わない: ThumbsDown } as const satisfies Record<Verdict, unknown>;
+const VERDICT_COLOR = { 好み: "text-accent", ふつう: "text-ink-3", 合わない: "text-danger" } as const satisfies Record<Verdict, string>;
+
+function VerdictIcon({ verdict, className }: { verdict: Verdict; className?: string }) {
+  const Icon = VERDICT_ICON[verdict];
+  return <Icon className={className} aria-hidden />;
+}
 
 /** 一覧で使う一行の献立 */
 export function MealRow({ meal, slot, onOpen, compact }: { meal?: Meal; slot: Slot; onOpen?: (m: Meal) => void; compact?: boolean }) {
@@ -55,10 +61,9 @@ export function MealRow({ meal, slot, onOpen, compact }: { meal?: Meal; slot: Sl
         )}
       </span>
       {feedback && (
-        <Pill tone={RATING_TONE[feedback.rating]} className="shrink-0">
-          <span className="sr-only">感想：</span>
-          {RATING_LABELS[feedback.rating]}
-        </Pill>
+        <span className={clsx("shrink-0", VERDICT_COLOR[feedback.verdict])} role="img" aria-label={`感想：${feedback.verdict}`}>
+          <VerdictIcon verdict={feedback.verdict} className="size-[18px]" />
+        </span>
       )}
       {meal.done ? (
         <CircleCheck className="size-[18px] shrink-0 text-ok" aria-label="作った" />
@@ -255,15 +260,15 @@ function FeedbackSection({ meal }: { meal: Meal }) {
   const { feedbackByMeal, sendFeedback } = useData();
   const saved = feedbackByMeal.get(meal.id);
   const [editing, setEditing] = useState(!saved);
-  const [rating, setRating] = useState<Rating | null>(saved?.rating ?? null);
+  const [verdict, setVerdict] = useState<Verdict | null>(saved?.verdict ?? null);
   const [tags, setTags] = useState<FeedbackTag[]>(saved?.tags ?? []);
   const [text, setText] = useState(saved?.text ?? "");
 
   const toggleTag = (t: FeedbackTag) => setTags((cur) => (cur.includes(t) ? cur.filter((x) => x !== t) : [...cur, t]));
   const submit = () => {
-    if (!rating) return;
+    if (!verdict) return;
     // 選んだ順ではなく決まった順で残す（読み返しやすいように）
-    sendFeedback(meal, { rating, tags: FEEDBACK_TAGS.filter((t) => tags.includes(t)), text });
+    sendFeedback(meal, { verdict, tags: FEEDBACK_TAGS.filter((t) => tags.includes(t)), text });
     setEditing(false);
   };
 
@@ -278,24 +283,25 @@ function FeedbackSection({ meal }: { meal: Meal }) {
       ) : (
         <div className="space-y-3 rounded-2xl bg-surface-2 p-4">
           <p className="text-[13px] text-ink-2">好みに合いましたか？ 次の献立づくりの参考にします。</p>
-          <div role="radiogroup" aria-label="好みに合ったか" className="grid grid-cols-5 gap-1.5">
-            {RATINGS.map((v) => (
+          <div role="radiogroup" aria-label="好みに合ったか" className="grid grid-cols-3 gap-2">
+            {VERDICTS.map((v) => (
               <button
                 key={v}
                 type="button"
                 role="radio"
-                aria-checked={rating === v}
-                onClick={() => setRating(v)}
+                aria-checked={verdict === v}
+                onClick={() => setVerdict(v)}
                 className={clsx(
-                  "tap rounded-xl border px-0.5 py-2.5 text-[13px] font-medium whitespace-nowrap",
-                  rating === v ? "border-accent bg-accent text-accent-ink" : "border-line bg-surface text-ink-2",
+                  "tap flex items-center justify-center gap-1.5 rounded-xl border py-2.5 text-[14px] font-medium",
+                  verdict === v ? "border-accent bg-accent text-accent-ink" : "border-line bg-surface text-ink-2",
                 )}
               >
-                {RATING_LABELS[v]}
+                <VerdictIcon verdict={v} className="size-4" />
+                {v}
               </button>
             ))}
           </div>
-          {rating && (
+          {verdict && (
             <>
               <div className="flex flex-wrap gap-1.5" aria-label="当てはまるもの">
                 {FEEDBACK_TAGS.map((t) => (
@@ -348,7 +354,10 @@ function SavedFeedback({ feedback, onEdit }: { feedback: Feedback; onEdit: () =>
   return (
     <div className="rounded-2xl bg-surface-2 p-4 text-[14px]">
       <div className="flex flex-wrap items-center gap-1.5">
-        <span className="mr-1 font-bold">{RATING_LABELS[feedback.rating]}</span>
+        <span className="mr-1 flex items-center gap-1.5 font-bold">
+          <VerdictIcon verdict={feedback.verdict} className={clsx("size-4", VERDICT_COLOR[feedback.verdict])} />
+          {feedback.verdict}
+        </span>
         {feedback.tags.map((t) => (
           <Pill key={t}>{t}</Pill>
         ))}

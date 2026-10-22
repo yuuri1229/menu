@@ -33,10 +33,10 @@ test("消した食材を献立や明細が指していれば知らせる", () =>
 });
 
 test("感想は選択肢とタグを決め打ちで検査する", () => {
-  const d = validate("feedback", { mealId: "m1", mealTitle: "親子丼", rating: 4, tags: ["味が薄い"] });
+  const d = validate("feedback", { mealId: "m1", mealTitle: "親子丼", verdict: "好み", tags: ["味が薄い"] });
   assert.equal(d.reflectedAt, null);
   assert.equal(d.text, "");
-  assert.throws(() => validate("feedback", { mealId: "m1", rating: 6 }), /rating/);
-  assert.throws(() => validate("feedback", { mealId: "m1", rating: 4, tags: ["辛い"] }), /tags/);
-  assert.throws(() => validate("feedback", { rating: 4 }), /mealId: 空にできない/);
+  assert.throws(() => validate("feedback", { mealId: "m1", verdict: "最高" }), /verdict/);
+  assert.throws(() => validate("feedback", { mealId: "m1", verdict: "好み", tags: ["辛い"] }), /tags/);
+  assert.throws(() => validate("feedback", { verdict: "好み" }), /mealId: 空にできない/);
 });

@@ -1,5 +1,3 @@
-import { RATING_LABELS } from "./schema.mjs";
-
 // 献立の感想（feedback）を Claude が読みやすい形に並べる（読み書きは scripts/db.mjs）。データを受け取って文を返すだけなので、テストできる。
 
 const SLOT_ORDER = { 朝食: 0, 昼食: 1, 夕食: 2 };
@@ -18,7 +16,7 @@ export function pendingFeedback(feedback = [], { all = false } = {}) {
 
 /**
  * 1件を数行にする。献立がまだあれば、作り方・メモの代わりに主菜と食材名を添える（何への感想か分かるように）。
- *   10/23(金) 夕食 鶏の塩レモンソテー＋千切りキャベツ 【好き 4/5】  [味が薄い・また食べたい]  (id)
+ *   10/23(木) 夕食 鶏の塩レモンソテー＋千切りキャベツ 【好み】  [味が薄い・また食べたい]  (id)
  *     「塩はもう少し多くていい」
  *     食材: 鶏むね肉、レモン汁
  */
@@ -29,7 +27,7 @@ export function formatFeedback(f, { meals = [], ingredients = [] } = {}) {
     f.date ? label(f.date) : "日付なし",
     f.slot ?? "",
     meal?.title ?? f.mealTitle ?? "（献立は消えています）",
-    `【${RATING_LABELS[f.rating] ?? "？"} ${f.rating ?? "?"}/5】`,
+    `【${f.verdict ?? "？"}】`,
     f.tags?.length ? ` [${f.tags.join("・")}]` : "",
     f.reflectedAt ? ` 反映済み ${f.reflectedAt.slice(0, 10)}` : "",
     ` (${f.mealId ?? f.id})`,

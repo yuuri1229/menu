@@ -5,9 +5,8 @@ const SLOT = ["朝食", "昼食", "夕食"];
 const STOCK = ["十分", "残りわずか", "切れた", "要確認"];
 const SEAFOOD = ["問題なし", "要確認", "NG"];
 const NOTE_KIND = ["week", "rules", "page"];
-/** 献立の感想。アプリの献立シートで選ぶ（src/lib/types.ts・firestore.rules と同じにする）。評価は 1〜5 */
-export const RATINGS = [1, 2, 3, 4, 5];
-export const RATING_LABELS = { 1: "苦手", 2: "いまいち", 3: "ふつう", 4: "好き", 5: "大好き" };
+/** 献立の感想。アプリの献立シートで選ぶ（src/lib/types.ts・firestore.rules と同じにする） */
+export const VERDICTS = ["好み", "ふつう", "合わない"];
 export const FEEDBACK_TAGS = ["味が濃い", "味が薄い", "量が多い", "量が少ない", "手間だった", "また食べたい", "苦手な食材"];
 
 /**
@@ -87,7 +86,7 @@ export const SCHEMA = {
     mealTitle: "string",
     date: "date?",
     slot: SLOT,
-    rating: RATINGS,
+    verdict: VERDICTS,
     tags: { many: FEEDBACK_TAGS },
     text: "string",
     uid: "string?",
@@ -104,7 +103,7 @@ export const MEMBER_WRITABLE = {
   ingredients: ["bought"],
   inventory: ["status"],
   // 感想は文書ごと書く（reflectedAt は空に戻すことだけできる）
-  feedback: ["mealId", "mealTitle", "date", "slot", "rating", "tags", "text", "uid", "updatedAt", "reflectedAt"],
+  feedback: ["mealId", "mealTitle", "date", "slot", "verdict", "tags", "text", "uid", "updatedAt", "reflectedAt"],
 };
 
 /** 感想の本文の上限（firestore.rules と同じ） */

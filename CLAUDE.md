@@ -33,7 +33,7 @@ node scripts/db.mjs help
 | `purchases` | `name` `amount`（税込） `store` `trip` `tripDate` `category`（食材/調味料・消耗品） `date` `carryOver` `memo` `receiptNo` `ingredientIds` | 米は `category: "食材"` で記録し、名前に米の銘柄を入れる（週予算から自動で除く） |
 | `inventory` | `name` `category` `storage` `status`（十分/残りわずか/切れた/要確認） `remaining` `memo` `seafood`（問題なし/要確認/NG） `bestBefore` `purchasedAt` | |
 | `notes` | `title` `icon` `kind`（week/rules/page） `start` `end` `markdown` `editedAt` | 週のメモは id を `week-YYYY-MM-DD`（月曜の日付）、`kind: "week"`。食材のレシピ候補などは `kind: "page"`。好みの記録は id `preferences`、`kind: "page"`。本文は Markdown（見出し・箇条書き・`- [ ]`・表） |
-| `feedback` | `mealId` `mealTitle` `date` `slot` `rating`（1〜5：苦手/いまいち/ふつう/好き/大好き） `tags` `text` `uid` `updatedAt` `reflectedAt` | アプリの献立シートから届く感想。id は献立の id（1献立1件、送り直すと上書きされ `reflectedAt` が空に戻る）。Claude は書き換えず、まとめたら `feedback:done` で `reflectedAt` を付けるだけ |
+| `feedback` | `mealId` `mealTitle` `date` `slot` `verdict`（好み/ふつう/合わない） `tags` `text` `uid` `updatedAt` `reflectedAt` | アプリの献立シートから届く感想。id は献立の id（1献立1件、送り直すと上書きされ `reflectedAt` が空に戻る）。Claude は書き換えず、まとめたら `feedback:done` で `reflectedAt` を付けるだけ |
 
 新しい文書は `id` を付けずに渡すと CLI が作り、作った id を表示します。既存の文書は `id` と変える項目だけ渡せば部分更新になります。
 
@@ -62,8 +62,8 @@ node scripts/db.mjs help
 
 **献立の感想を反映する（土曜のルーティンの最初、または「感想を反映して」）**
 1. `node scripts/db.mjs feedback` で反映待ちの感想を読む（献立名・評価・タグ・本文・食材が出る）。
-2. `notes/preferences`「好みの記録」の本文を更新する（「## 好きな味・料理」「## 苦手・控えたいもの」「## 味付けの調整」「## 量」。各行に日付と評価（例：好き 4/5）を添える。無ければ id `preferences`・`kind: "page"`・`icon: "💬"` で作る）。
-3. タグ「苦手な食材」や本文で苦手とはっきり書かれた食材は `notes/rules` の NG に足し、以後使わない。味付けや量の不満は好みの記録で調整し、1回の低い評価（1・2）だけで NG にしない。4・5 の料理は形を変えて再登場させてよい。
+2. `notes/preferences`「好みの記録」の本文を更新する（「## 好きな味・料理」「## 苦手・控えたいもの」「## 味付けの調整」「## 量」。各行に日付と評価（好み/ふつう/合わない）を添える。無ければ id `preferences`・`kind: "page"`・`icon: "💬"` で作る）。
+3. タグ「苦手な食材」や本文で苦手とはっきり書かれた食材は `notes/rules` の NG に足し、以後使わない。味付けや量の不満は好みの記録で調整し、1回の「合わない」だけで NG にしない。
 4. `node scripts/db.mjs feedback:done <id...>` で反映済みにする。翌週の献立で直した所は献立の `memo` と週ノートの「感想の反映」節に書く。
 5. 体調の異変（かゆみ・腫れなど）を思わせる感想があれば、献立より先にユーザーに確認する。
 

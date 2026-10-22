@@ -6,7 +6,7 @@ import { DEMO } from "./config";
 import { getDb, getFirebaseAuth } from "./firebase";
 import { parseMarkdown } from "./markdown";
 import { sampleSnapshot } from "./sample";
-import type { Feedback, FeedbackTag, Ingredient, InventoryItem, Meal, Note, Purchase, Snapshot, StockStatus, Rating } from "./types";
+import type { Feedback, FeedbackTag, Ingredient, InventoryItem, Meal, Note, Purchase, Snapshot, StockStatus, Verdict } from "./types";
 
 type Status = "loading" | "ready" | "error";
 
@@ -24,7 +24,7 @@ interface DataApi extends Snapshot {
   setStock: (id: string, status: StockStatus) => void;
   /** 献立の id → その献立への感想 */
   feedbackByMeal: Map<string, Feedback>;
-  sendFeedback: (meal: Meal, input: { rating: Rating; tags: FeedbackTag[]; text: string }) => void;
+  sendFeedback: (meal: Meal, input: { verdict: Verdict; tags: FeedbackTag[]; text: string }) => void;
 }
 
 const DataContext = createContext<DataApi | null>(null);
@@ -118,13 +118,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, []);
 
   /** 感想は献立ごとに1件。文書ごと書き直し、反映済みの印は外して Claude にもう一度読んでもらう */
-  const sendFeedback = useCallback<DataApi["sendFeedback"]>((meal, { rating, tags, text }) => {
+  const sendFeedback = useCallback<DataApi["sendFeedback"]>((meal, { verdict, tags, text }) => {
     const data: Omit<Feedback, "id"> = {
       mealId: meal.id,
       mealTitle: meal.title,
       date: meal.date,
       slot: meal.slot,
-      rating,
+      verdict,
       tags,
       text: text.trim(),
       uid: DEMO ? "demo" : (getFirebaseAuth().currentUser?.uid ?? null),
