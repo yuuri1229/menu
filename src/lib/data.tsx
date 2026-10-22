@@ -1,12 +1,12 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { collection, doc, onSnapshot, updateDoc } from "firebase/firestore";
+import { collection, doc, onSnapshot, setDoc, updateDoc } from "firebase/firestore";
 import { DEMO } from "./config";
-import { getDb } from "./firebase";
+import { getDb, getFirebaseAuth } from "./firebase";
 import { parseMarkdown } from "./markdown";
 import { sampleSnapshot } from "./sample";
-import type { Ingredient, InventoryItem, Meal, Note, Purchase, Snapshot, StockStatus } from "./types";
+import type { Feedback, FeedbackTag, Ingredient, InventoryItem, Meal, Note, Purchase, Snapshot, StockStatus, Verdict } from "./types";
 
 type Status = "loading" | "ready" | "error";
 
@@ -22,15 +22,18 @@ interface DataApi extends Snapshot {
   setMealDone: (id: string, done: boolean) => void;
   setBought: (id: string, bought: boolean) => void;
   setStock: (id: string, status: StockStatus) => void;
+  /** 献立の id → その献立への感想 */
+  feedbackByMeal: Map<string, Feedback>;
+  sendFeedback: (meal: Meal, input: { verdict: Verdict; tags: FeedbackTag[]; text: string }) => void;
 }
 
 const DataContext = createContext<DataApi | null>(null);
 
-const COLLECTIONS = ["meals", "ingredients", "purchases", "inventory", "notes"] as const;
+const COLLECTIONS = ["meals", "ingredients", "purchases", "inventory", "notes", "feedback"] as const;
 type Name = (typeof COLLECTIONS)[number];
 type Raw = { syncedAt: string | null } & Record<Name, Record<string, unknown>[]>;
 
-const EMPTY: Raw = { syncedAt: null, meals: [], ingredients: [], purchases: [], inventory: [], notes: [] };
+const EMPTY: Raw = { syncedAt: null, meals: [], ingredients: [], purchases: [], inventory: [], notes: [], feedback: [] };
 
 /** 保存されていない項目（食材の実績金額・使う献立、ノートの表示用ブロック）を計算して足す */
 function derive(raw: Raw): Snapshot {
@@ -52,6 +55,7 @@ function derive(raw: Raw): Snapshot {
       mealIds: usedBy.get(i.id) ?? [],
     })),
     notes: (raw.notes as unknown as Note[]).map((n) => ({ ...n, blocks: parseMarkdown(n.markdown ?? "") })),
+    feedback: raw.feedback as unknown as Feedback[],
   };
 }
 
@@ -81,7 +85,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
           setRaw((s) => ({ ...s, [name]: qs.docs.map((d) => ({ ...d.data(), id: d.id })) }));
           setLoaded((l) => new Set(l).add(name));
         },
-        onError,
+        // 感想が読めなくても（ルールの反映前など）献立や買い物は使えるようにする
+        name === "feedback" ? () => setLoaded((l) => new Set(l).add(name)) : onError,
       ),
     );
     unsubs.push(
@@ -112,6 +117,33 @@ export function DataProvider({ children }: { children: ReactNode }) {
     );
   }, []);
 
+  /** 感想は献立ごとに1件。文書ごと書き直し、反映済みの印は外して Claude にもう一度読んでもらう */
+  const sendFeedback = useCallback<DataApi["sendFeedback"]>((meal, { verdict, tags, text }) => {
+    const data: Omit<Feedback, "id"> = {
+      mealId: meal.id,
+      mealTitle: meal.title,
+      date: meal.date,
+      slot: meal.slot,
+      verdict,
+      tags,
+      text: text.trim(),
+      uid: DEMO ? "demo" : (getFirebaseAuth().currentUser?.uid ?? null),
+      updatedAt: new Date().toISOString(),
+      reflectedAt: null,
+    };
+    if (DEMO) {
+      setRaw((s) => ({ ...s, feedback: [...s.feedback.filter((f) => f.id !== meal.id), { ...data, id: meal.id }] }));
+      return;
+    }
+    setDoc(doc(getDb(), "feedback", meal.id), data).catch((e: { code?: string }) =>
+      setWriteError(
+        e.code === "permission-denied"
+          ? "感想を保存する権限がありません。Firestore のルールが反映されているか確認してください。"
+          : "感想を保存できませんでした。通信の良いところでもう一度試してください。",
+      ),
+    );
+  }, []);
+
   const value = useMemo<DataApi>(() => {
     const snap = derive(raw);
     const status: Status = error ? "error" : DEMO || loaded.size === COLLECTIONS.length ? "ready" : "loading";
@@ -127,8 +159,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
       setMealDone: (id, done) => write("meals", id, "done", done),
       setBought: (id, bought) => write("ingredients", id, "bought", bought),
       setStock: (id, status) => write("inventory", id, "status", status),
+      feedbackByMeal: new Map(snap.feedback.map((f) => [f.mealId ?? f.id, f])),
+      sendFeedback,
     };
-  }, [raw, loaded, error, writeError, write]);
+  }, [raw, loaded, error, writeError, write, sendFeedback]);
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 }
@@ -139,4 +173,4 @@ export function useData() {
   return ctx;
 }
 
-export type { Ingredient, InventoryItem, Meal, Note, Purchase };
+export type { Feedback, Ingredient, InventoryItem, Meal, Note, Purchase };

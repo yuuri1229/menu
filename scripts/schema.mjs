@@ -5,6 +5,9 @@ const SLOT = ["朝食", "昼食", "夕食"];
 const STOCK = ["十分", "残りわずか", "切れた", "要確認"];
 const SEAFOOD = ["問題なし", "要確認", "NG"];
 const NOTE_KIND = ["week", "rules", "page"];
+/** 献立の感想。アプリの献立シートで選ぶ（src/lib/types.ts・firestore.rules と同じにする） */
+export const VERDICTS = ["好み", "ふつう", "合わない"];
+export const FEEDBACK_TAGS = ["味が濃い", "味が薄い", "量が多い", "量が少ない", "手間だった", "また食べたい", "苦手な食材"];
 
 /**
  * 型の書き方
@@ -15,6 +18,7 @@ const NOTE_KIND = ["week", "rules", "page"];
  *   "date?"    "YYYY-MM-DD" か null
  *   "ids"      文字列の配列（ほかの文書の id）
  *   [..]       列挙のどれか（null も可）
+ *   {many:[..]} 列挙から選んだ配列（空も可）
  */
 export const SCHEMA = {
   meals: {
@@ -75,16 +79,41 @@ export const SCHEMA = {
     markdown: "string",
     editedAt: "string?",
   },
+  // 献立ごとの感想。id は献立の id と同じ（1献立1件、送り直すと上書き）。アプリが書き、
+  // Claude は好みの記録（notes/preferences）にまとめたら reflectedAt を付ける
+  feedback: {
+    mealId: "string",
+    mealTitle: "string",
+    date: "date?",
+    slot: SLOT,
+    verdict: VERDICTS,
+    tags: { many: FEEDBACK_TAGS },
+    text: "string",
+    uid: "string?",
+    updatedAt: "string?",
+    reflectedAt: "string?",
+  },
 };
 
 export const COLLECTIONS = Object.keys(SCHEMA);
 
 /** アプリ（ログインしたメンバー）が書き換えてよい項目。firestore.rules と同じにする */
-export const MEMBER_WRITABLE = { meals: ["done"], ingredients: ["bought"], inventory: ["status"] };
+export const MEMBER_WRITABLE = {
+  meals: ["done"],
+  ingredients: ["bought"],
+  inventory: ["status"],
+  // 感想は文書ごと書く（reflectedAt は空に戻すことだけできる）
+  feedback: ["mealId", "mealTitle", "date", "slot", "verdict", "tags", "text", "uid", "updatedAt", "reflectedAt"],
+};
+
+/** 感想の本文の上限（firestore.rules と同じ） */
+export const FEEDBACK_TEXT_MAX = 500;
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 function checkValue(type, v) {
+  if (type?.many)
+    return Array.isArray(v) && v.every((x) => type.many.includes(x)) ? null : `${type.many.join(" / ")} から選んだ配列`;
   if (Array.isArray(type)) return v === null || type.includes(v) ? null : `${type.join(" / ")} のどれか`;
   switch (type) {
     case "string":
@@ -105,6 +134,7 @@ function checkValue(type, v) {
 }
 
 function defaultFor(type) {
+  if (type?.many) return [];
   if (Array.isArray(type)) return null;
   return { string: "", "string?": null, "number?": null, bool: false, "date?": null, ids: [] }[type];
 }
@@ -131,7 +161,7 @@ export function validate(collection, data, { partial = false } = {}) {
   }
   if (!partial) {
     for (const [k, type] of Object.entries(fields)) if (!(k in out)) out[k] = defaultFor(type);
-    const required = { meals: "title", ingredients: "name", purchases: "name", inventory: "name", notes: "title" }[collection];
+    const required = { meals: "title", ingredients: "name", purchases: "name", inventory: "name", notes: "title", feedback: "mealId" }[collection];
     if (!out[required]) errors.push(`${required}: 空にできない`);
   }
   if (errors.length) throw new Error(`${collection}${data.id ? `/${data.id}` : ""}: ${errors.join("; ")}`);

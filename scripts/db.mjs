@@ -8,6 +8,7 @@
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { COLLECTIONS, checkRefs, validate } from "./schema.mjs";
+import { formatFeedback, pendingFeedback } from "./feedback.mjs";
 import { buildReminder, jstDate } from "./notify.mjs";
 
 const HELP = `使い方: node scripts/db.mjs <コマンド> [引数]
@@ -16,6 +17,11 @@ const HELP = `使い方: node scripts/db.mjs <コマンド> [引数]
   export [--out ファイル]          全データを JSON で出す（id 付き）
   get <コレクション> [id]          1件、または全件を JSON で出す
   check                            全文書の形と参照（献立→食材など）を検査する
+
+感想（アプリの献立シートから届く。まとめ先は notes/preferences「好みの記録」）
+  feedback [--all] [--json]        反映待ちの感想を新しい献立の順に出す（--all は反映済みも）
+  feedback:done <id...|--pending>  好みの記録にまとめた感想に反映済みの印を付ける
+                                   （--pending は今の反映待ちを全部）
 
 書く（--dry-run で内容だけ確認、--force で参照切れを無視）
   upsert <ファイル|->              {"meals":[{...}], ...} を書き込む。
@@ -266,6 +272,27 @@ try {
       problems.push(...checkRefs(snap));
       if (problems.length) fail(`問題があります:\n  ${problems.join("\n  ")}`);
       console.log(`問題なし（${COLLECTIONS.map((c) => `${c} ${snap[c].length}`).join("・")}）`);
+      break;
+    }
+    case "feedback": {
+      const snap = await loadAll();
+      const list = pendingFeedback(snap.feedback, { all: flags.has("--all") });
+      if (flags.has("--json")) console.log(JSON.stringify(list, null, 1));
+      else if (!list.length) console.log(flags.has("--all") ? "感想はまだありません" : "反映待ちの感想はありません");
+      else {
+        for (const f of list) console.log(formatFeedback(f, snap));
+        console.log(`\n${list.length}件。まとめたら feedback:done <id...> で反映済みにする`);
+      }
+      break;
+    }
+    case "feedback:done": {
+      const snap = await loadAll();
+      const ids = flags.has("--pending") ? pendingFeedback(snap.feedback).map((f) => f.id) : rest;
+      if (!ids.length) fail(flags.has("--pending") ? "反映待ちの感想はありません" : "feedback:done <id...> か --pending で指定してください");
+      const missing = ids.filter((id) => !snap.feedback.some((f) => f.id === id));
+      if (missing.length) fail(`feedback に見つかりません: ${missing.join(", ")}`);
+      const reflectedAt = new Date().toISOString();
+      await commit(ids.map((id) => ({ type: "set", c: "feedback", id, data: { reflectedAt }, merge: true })));
       break;
     }
     case "upsert": {
