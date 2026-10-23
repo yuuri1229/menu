@@ -43,13 +43,13 @@ export function InstallHint({ dismissible = true }: { dismissible?: boolean }) {
       <p className="pr-8 font-display font-bold">ホーム画面に追加すると、アプリのように使えます</p>
       <ol className="mt-2.5 space-y-2 text-[14px] text-ink-2">
         <li className="flex items-center gap-2">
-          <span className="grid size-6 shrink-0 place-items-center rounded-full bg-accent-soft text-[12px] font-bold text-accent">1</span>
+          <span className="grid size-6 shrink-0 place-items-center rounded-full bg-accent-soft text-[12px] font-bold text-accent-text">1</span>
           画面下の
           <Share className="size-[18px] text-night" aria-label="共有" />
           共有ボタンを押す
         </li>
         <li className="flex items-center gap-2">
-          <span className="grid size-6 shrink-0 place-items-center rounded-full bg-accent-soft text-[12px] font-bold text-accent">2</span>
+          <span className="grid size-6 shrink-0 place-items-center rounded-full bg-accent-soft text-[12px] font-bold text-accent-text">2</span>
           <SquarePlus className="size-[18px]" aria-hidden />
           「ホーム画面に追加」を選ぶ
         </li>

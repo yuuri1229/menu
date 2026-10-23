@@ -89,7 +89,7 @@ export default function TodayPage() {
                     <span
                       className={clsx(
                         "mt-0.5 shrink-0 rounded-md px-1.5 text-[11px] font-bold leading-5",
-                        meal.date === today ? "bg-surface-3 text-ink-2" : "bg-accent-soft text-accent",
+                        meal.date === today ? "bg-surface-3 text-ink-2" : "bg-accent-soft text-accent-text",
                       )}
                     >
                       {meal.date === today ? "今日" : "明日"}
@@ -106,7 +106,7 @@ export default function TodayPage() {
 
       {status !== "loading" && (
         <>
-          <SectionTitle action={<Link href="/week" className="text-[13px] text-accent">1週間を見る</Link>}>今日の献立</SectionTitle>
+          <SectionTitle action={<Link href="/week" className="text-[13px] text-accent-text">1週間を見る</Link>}>今日の献立</SectionTitle>
           <div className="card divide-y divide-line overflow-hidden">
             {SLOTS.map((s) => (
               <MealRow key={s} slot={s} meal={bySlot(todayMeals, s)} onOpen={setOpen} />
@@ -117,7 +117,7 @@ export default function TodayPage() {
             {nextTrip ? (
               <Link href={`/shopping?trip=${encodeURIComponent(nextTrip.label)}`} className="tap card flex flex-col p-4">
                 <span className="flex items-center gap-1.5 text-[13px] font-bold text-ink-2">
-                  <ShoppingBasket className="size-4 text-accent" />
+                  <ShoppingBasket className="size-4 text-accent-text" />
                   次の買い物
                   <ChevronRight className="ml-auto size-4 text-ink-3" />
                 </span>
@@ -141,7 +141,7 @@ export default function TodayPage() {
 
             <Link href="/spending" className="tap card flex flex-col p-4">
               <span className="flex items-center gap-1.5 text-[13px] font-bold text-ink-2">
-                <Wallet className="size-4 text-accent" />
+                <Wallet className="size-4 text-accent-text" />
                 今週の食費
                 <ChevronRight className="ml-auto size-4 text-ink-3" />
               </span>
@@ -158,7 +158,7 @@ export default function TodayPage() {
             {alerts.length > 0 && (
               <Link href="/pantry?filter=action" className="tap card flex flex-col p-4 sm:col-span-2">
                 <span className="flex items-center gap-1.5 text-[13px] font-bold text-ink-2">
-                  <Refrigerator className="size-4 text-accent" />
+                  <Refrigerator className="size-4 text-accent-text" />
                   在庫の確認
                   <ChevronRight className="ml-auto size-4 text-ink-3" />
                 </span>

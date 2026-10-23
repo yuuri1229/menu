@@ -23,7 +23,7 @@ export function SlotLabel({ slot, meal, className }: { slot: Slot; meal?: Meal; 
 
 /** 感想の評価のアイコン（絵文字は使わない） */
 const VERDICT_ICON = { 好み: ThumbsUp, ふつう: Minus, 合わない: ThumbsDown } as const satisfies Record<Verdict, unknown>;
-const VERDICT_COLOR = { 好み: "text-accent", ふつう: "text-ink-3", 合わない: "text-danger" } as const satisfies Record<Verdict, string>;
+const VERDICT_COLOR = { 好み: "text-accent-text", ふつう: "text-ink-3", 合わない: "text-danger" } as const satisfies Record<Verdict, string>;
 
 function VerdictIcon({ verdict, className }: { verdict: Verdict; className?: string }) {
   const Icon = VERDICT_ICON[verdict];
@@ -127,7 +127,7 @@ export function MealHero({ meal, slot, onOpen, label }: { meal?: Meal; slot: Slo
 }
 
 const MEMO_STYLE = {
-  result: { icon: Sparkles, box: "bg-accent-soft text-ink", label: "実績", iconClass: "text-accent" },
+  result: { icon: Sparkles, box: "bg-accent-soft text-ink", label: "実績", iconClass: "text-accent-text" },
   change: { icon: Pencil, box: "bg-surface-2 text-ink-2", label: "変更", iconClass: "text-ink-3" },
   prep: { icon: Lightbulb, box: "bg-warn-soft text-ink", label: "段取り", iconClass: "text-warn" },
   plain: { icon: null, box: "", label: "", iconClass: "" },

@@ -55,8 +55,8 @@ export function LoginScreen() {
       <div className="relative mx-auto flex w-full max-w-sm flex-1 flex-col justify-center px-6 py-12 pt-safe">
         <div className="rise mb-10 flex flex-col items-center text-center">
           <BrandMark className="mb-5 size-20 drop-shadow-xl" />
-          <h1 className="font-display text-[30px] font-bold tracking-tight">こんだて帖</h1>
-          <p className="mt-1.5 text-sm text-ink-2">今週の献立・買い物・在庫を、ひと目で。</p>
+          <h1 className="font-display text-[30px] font-bold tracking-[0.12em]">MEGURU</h1>
+          <p className="mt-1.5 text-sm text-ink-2">献立がめぐる、暮らしが整う</p>
         </div>
 
         <form onSubmit={submit} className="rise card space-y-4 p-6" style={{ animationDelay: "80ms" }} noValidate>

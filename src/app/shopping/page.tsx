@@ -171,7 +171,7 @@ function Shopping() {
           チェック済みを隠す
         </button>
         {note && (
-          <Link href={`/notes?id=${note.id}`} className="tap ml-auto flex items-center gap-1 rounded-full px-3 py-1.5 text-[13px] text-accent">
+          <Link href={`/notes?id=${note.id}`} className="tap ml-auto flex items-center gap-1 rounded-full px-3 py-1.5 text-[13px] text-accent-text">
             <NotebookText className="size-4" />
             予算メモ
           </Link>

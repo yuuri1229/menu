@@ -215,7 +215,7 @@ function StockSheet({ item, onClose }: { item: InventoryItem | null; onClose: ()
                 >
                   <Pill tone={STATUS_TONE[value]}>{value}</Pill>
                   <span className="mt-1.5 block text-[13px] leading-snug text-ink-2">{help}</span>
-                  {active && <Check className="absolute top-3 right-3 size-4 text-accent" strokeWidth={3} />}
+                  {active && <Check className="absolute top-3 right-3 size-4 text-accent-text" strokeWidth={3} />}
                 </button>
               );
             })}

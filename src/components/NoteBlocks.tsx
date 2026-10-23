@@ -7,7 +7,7 @@ import type { Block, RichText } from "@/lib/types";
 
 const COLOR: Record<string, string> = {
   red: "text-danger",
-  orange: "text-accent",
+  orange: "text-accent-text",
   yellow: "text-warn",
   green: "text-ok",
   blue: "text-night",
@@ -31,7 +31,7 @@ export function Rich({ rich }: { rich?: RichText[] }) {
         );
         if (r.href)
           return (
-            <a key={i} href={r.href} target="_blank" rel="noreferrer" className={clsx(cls, "text-accent underline underline-offset-2")}>
+            <a key={i} href={r.href} target="_blank" rel="noreferrer" className={clsx(cls, "text-accent-text underline underline-offset-2")}>
               {node}
             </a>
           );

@@ -74,7 +74,7 @@ const PUSH_NOTE: Record<PushState, string> = {
   on: "この端末に届きます。買い物の前の晩（20時）に買う物と段取りを、Claude が献立を更新したときはそのお知らせを送ります。",
   off: "買い物の前の晩（20時）に買う物と段取りを、Claude が献立を更新したときはそのお知らせを、この端末に送ります。",
   needsInstall: "iPhone では、ホーム画面に追加したアイコンから開くと通知をオンにできます（Safari のままでは受け取れません）。",
-  denied: "通知が許可されていません。端末の「設定 → 通知 → こんだて帖」で許可してから、もう一度開いてください。",
+  denied: "通知が許可されていません。端末の「設定 → 通知 → MEGURU」で許可してから、もう一度開いてください。",
   unsupported: "このブラウザでは通知を受け取れません。",
 };
 
@@ -107,7 +107,7 @@ function PushCard({ open }: { open: boolean }) {
   return (
     <div className="rounded-2xl bg-surface-2 p-4">
       <div className="flex items-center gap-3">
-        {on ? <Bell className="size-5 text-accent" /> : <BellOff className="size-5 text-ink-3" />}
+        {on ? <Bell className="size-5 text-accent-text" /> : <BellOff className="size-5 text-ink-3" />}
         <p className="font-medium">通知</p>
         {canToggle && (
           <button

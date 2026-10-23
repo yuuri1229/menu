@@ -6,18 +6,17 @@ import clsx from "clsx";
 import { X } from "lucide-react";
 
 export function BrandMark({ className }: { className?: string }) {
+  // 上から見た朱の器と墨の箸。色は配色トークンに追従してライト/ダークで切り替わる
   return (
     <svg viewBox="0 0 512 512" className={className} aria-hidden>
-      <rect width="512" height="512" rx="128" fill="var(--accent)" />
-      <path d="M120 262c0-12 10-22 22-22h228c12 0 22 10 22 22 0 75-61 136-136 136s-136-61-136-136z" fill="#fff" />
-      <path d="M176 232c8-34 40-60 80-60s72 26 80 60" fill="none" stroke="#fff" strokeWidth="22" strokeLinecap="round" />
+      <rect width="512" height="512" rx="128" fill="var(--surface)" />
+      <circle cx="236" cy="290" r="120" fill="var(--accent)" />
       <path
-        d="M214 132c-10 14 10 22 0 40M256 120c-10 16 10 26 0 46M298 132c-10 14 10 22 0 40"
+        d="M276 120L404 248M316 92L436 212"
         fill="none"
-        stroke="#fff"
-        strokeWidth="14"
+        stroke="var(--leaf)"
+        strokeWidth="26"
         strokeLinecap="round"
-        opacity=".85"
       />
     </svg>
   );
@@ -168,7 +167,7 @@ export function Empty({ icon, title, children }: { icon: ReactNode; title: strin
 
 const TONES = {
   neutral: "bg-surface-3 text-ink-2",
-  accent: "bg-accent-soft text-accent",
+  accent: "bg-accent-soft text-accent-text",
   ok: "bg-ok-soft text-ok",
   warn: "bg-warn-soft text-warn",
   danger: "bg-danger-soft text-danger",
