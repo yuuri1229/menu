@@ -12,7 +12,7 @@ export function BrandMark({ className }: { className?: string }) {
       <rect width="512" height="512" rx="128" fill="var(--surface)" />
       <circle cx="236" cy="290" r="120" fill="var(--accent)" />
       <path
-        d="M300 96L452 248M340 72L476 208"
+        d="M276 120L404 248M316 92L436 212"
         fill="none"
         stroke="var(--leaf)"
         strokeWidth="26"
