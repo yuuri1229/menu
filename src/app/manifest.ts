@@ -6,14 +6,14 @@ const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "こんだて帖",
-    short_name: "こんだて帖",
-    description: "1週間の献立・買い物・在庫をひと目で",
+    name: "MEGURU",
+    short_name: "MEGURU",
+    description: "献立がめぐる、暮らしが整う",
     start_url: `${basePath}/`,
     scope: `${basePath}/`,
     display: "standalone",
-    background_color: "#f6f1e9",
-    theme_color: "#f6f1e9",
+    background_color: "#fff8f1",
+    theme_color: "#fff8f1",
     icons: [
       { src: `${basePath}/icon.svg`, sizes: "any", type: "image/svg+xml" },
       { src: `${basePath}/icon-512.png`, sizes: "512x512", type: "image/png" },

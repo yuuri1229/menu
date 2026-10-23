@@ -23,11 +23,11 @@ const notoSansJp = Noto_Sans_JP({
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 
 export const metadata: Metadata = {
-  title: "こんだて帖",
-  description: "1週間の献立・買い物・在庫をひと目で",
+  title: "MEGURU",
+  description: "献立がめぐる、暮らしが整う",
   manifest: `${basePath}/manifest.webmanifest`,
   // ホーム画面に追加して全画面で使う前提。ステータスバーの色は theme-color（ライト/ダーク別）に合わせる
-  appleWebApp: { capable: true, title: "こんだて帖", statusBarStyle: "default" },
+  appleWebApp: { capable: true, title: "MEGURU", statusBarStyle: "default" },
   other: { "apple-mobile-web-app-capable": "yes" },
   formatDetection: { telephone: false, date: false, address: false, email: false },
   robots: { index: false, follow: false },
@@ -42,8 +42,8 @@ export const viewport: Viewport = {
   initialScale: 1,
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f6f1e9" },
-    { media: "(prefers-color-scheme: dark)", color: "#15120f" },
+    { media: "(prefers-color-scheme: light)", color: "#fff8f1" },
+    { media: "(prefers-color-scheme: dark)", color: "#151a17" },
   ],
 };
 

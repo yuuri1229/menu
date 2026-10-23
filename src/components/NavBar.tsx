@@ -53,7 +53,7 @@ export function NavBar() {
                   onClick={(e) => scrollTopIfActive(e, active)}
                   className={clsx(
                     "tap flex flex-col items-center gap-0.5 pt-2 pb-1.5 text-[11px] font-medium",
-                    active ? "text-accent" : "text-ink-3",
+                    active ? "text-accent-text" : "text-ink-3",
                   )}
                 >
                   <span
@@ -79,7 +79,7 @@ export function NavBar() {
       >
         <Link href="/" className="mb-8 flex items-center justify-center gap-2.5 lg:justify-start lg:px-3">
           <BrandMark className="size-9" />
-          <span className="hidden font-display text-lg font-bold lg:inline">こんだて帖</span>
+          <span className="hidden font-display text-lg font-bold tracking-[0.12em] lg:inline">MEGURU</span>
         </Link>
         <ul className="flex flex-col gap-1 px-3 lg:px-0">
           {[...TABS, { href: "/notes", label: "ノート", icon: BookOpen }].map(({ href, label, icon: Icon }) => {
@@ -91,7 +91,7 @@ export function NavBar() {
                   aria-current={active ? "page" : undefined}
                   className={clsx(
                     "tap flex flex-col items-center gap-1 rounded-2xl py-2.5 text-[11px] font-medium lg:flex-row lg:gap-3 lg:px-3 lg:text-[15px]",
-                    active ? "bg-accent-soft text-accent" : "text-ink-2 hover:bg-surface-3",
+                    active ? "bg-accent-soft text-accent-text" : "text-ink-2 hover:bg-surface-3",
                   )}
                 >
                   <Icon className="size-[22px]" strokeWidth={active ? 2.25 : 1.75} />

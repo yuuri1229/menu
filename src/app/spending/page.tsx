@@ -72,7 +72,7 @@ export default function SpendingPage() {
                     style={{ bottom: `${(WEEKLY_BUDGET / maxBar) * 100}%` }}
                     aria-hidden
                   >
-                    <span className="absolute -top-5 right-0 text-[10px] text-accent">予算</span>
+                    <span className="absolute -top-5 right-0 text-[10px] text-accent-text">予算</span>
                   </div>
                   {history.map((hw) => {
                     const v = byWeek.get(hw)?.food ?? 0;

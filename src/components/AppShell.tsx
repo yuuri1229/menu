@@ -73,7 +73,7 @@ function Splash() {
     <div className="grid min-h-dvh place-items-center">
       <div className="flex flex-col items-center gap-4 fade-in">
         <BrandMark className="size-16 animate-pulse" />
-        <p className="font-display text-sm text-ink-3">こんだて帖</p>
+        <p className="font-display text-sm text-ink-3 tracking-[0.12em]">MEGURU</p>
       </div>
     </div>
   );

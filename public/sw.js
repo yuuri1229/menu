@@ -1,4 +1,4 @@
-// こんだて帖のプッシュ通知を受け取る Service Worker。
+// MEGURU（旧こんだて帖）のプッシュ通知を受け取る Service Worker。
 // 送るのは Claude（scripts/db.mjs notify）と毎晩のリマインド（.github/workflows/notify.yml）。
 // 中身は {"title","body","url","tag"} の JSON。url はアプリ内のパス（例 "shopping/"）。
 
@@ -14,7 +14,7 @@ self.addEventListener("push", (event) => {
   }
   const scope = self.registration.scope;
   event.waitUntil(
-    self.registration.showNotification(data.title || "こんだて帖", {
+    self.registration.showNotification(data.title || "MEGURU", {
       body: data.body || "",
       tag: data.tag || undefined,
       icon: new URL("apple-touch-icon.png", scope).href,
