@@ -1,33 +1,33 @@
 @import "tailwindcss";
 
 :root {
-  --bg: #fff8f1;
+  --bg: #f4f3f1;
   --surface: #ffffff;
-  --surface-2: #fff3e8;
-  --surface-3: #f7e9dc;
-  --ink: #443c38;
-  --ink-2: #796c62;
-  --ink-3: #9a8d84;
-  --line: #eadbd1;
-  /* MEGURU の主色。塗り・枠に使う。文字にするときは --accent-text（背景の上で 4.5:1 以上） */
-  --accent: #ed784a;
-  --accent-text: #a54817;
-  --accent-ink: #2a201c;
-  --accent-soft: #fde6da;
-  /* ロゴの葉の緑（パレットの accent） */
-  --leaf: #59856a;
-  --morning: #a35d00;
-  --morning-soft: #fcefd6;
-  --noon: #456f55;
-  --noon-soft: #e3efe7;
-  --night: #4b55b0;
-  --night-soft: #e5e8fa;
-  --danger: #b94440;
-  --danger-soft: #f8e2e0;
+  --surface-2: #f9f8f6;
+  --surface-3: #ecebe8;
+  --ink: #1f1e1d;
+  --ink-2: #666360;
+  --ink-3: #8c8884;
+  --line: #e4e2df;
+  /* MEGURU の主色（朱）。文字にするときは --accent-text */
+  --accent: #b5361f;
+  --accent-text: #b5361f;
+  --accent-ink: #ffffff;
+  --accent-soft: #f6e0db;
+  /* ロゴの墨色 */
+  --leaf: #1f1e1d;
+  --morning: #9a6a00;
+  --morning-soft: #f8efd9;
+  --noon: #2f7a55;
+  --noon-soft: #e0efe6;
+  --night: #3f5bb0;
+  --night-soft: #e4e8f6;
+  --danger: #b5361f;
+  --danger-soft: #f6e0db;
   --warn: #9a6a00;
-  --warn-soft: #fbf0d4;
-  --ok: #397b56;
-  --ok-soft: #e1efe6;
+  --warn-soft: #f8efd9;
+  --ok: #2f7a55;
+  --ok-soft: #e0efe6;
   --shadow: 0 1px 2px rgb(60 40 20 / 0.04), 0 4px 16px rgb(60 40 20 / 0.06);
   --shadow-lg: 0 8px 40px rgb(60 40 20 / 0.16);
   color-scheme: light;
@@ -35,31 +35,31 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #151a17;
-    --surface: #212823;
-    --surface-2: #2c332d;
-    --surface-3: #353d37;
-    --ink: #f7f0ea;
-    --ink-2: #bcafab;
-    --ink-3: #8f8580;
-    --line: #465149;
-    --accent: #ff9972;
-    --accent-text: #ff9972;
-    --accent-ink: #151a17;
-    --accent-soft: #3d2a22;
-    --leaf: #99c4a8;
-    --morning: #f2b14a;
-    --morning-soft: #3a2c14;
-    --noon: #99c4a8;
-    --noon-soft: #1f3327;
-    --night: #9aa3f0;
+    --bg: #121212;
+    --surface: #1c1c1c;
+    --surface-2: #232323;
+    --surface-3: #2c2c2c;
+    --ink: #efeeec;
+    --ink-2: #aaa7a3;
+    --ink-3: #7d7a76;
+    --line: #2c2c2c;
+    --accent: #ef7a62;
+    --accent-text: #ef7a62;
+    --accent-ink: #1a0c08;
+    --accent-soft: #3a1f19;
+    --leaf: #efeeec;
+    --morning: #e2b04e;
+    --morning-soft: #3a2d12;
+    --noon: #66c08f;
+    --noon-soft: #17301f;
+    --night: #8fa3f0;
     --night-soft: #1f2242;
-    --danger: #ff9f98;
-    --danger-soft: #3e2422;
-    --warn: #e6b04a;
+    --danger: #f07468;
+    --danger-soft: #3d1c19;
+    --warn: #e2b04e;
     --warn-soft: #3a2d12;
-    --ok: #9ad8b0;
-    --ok-soft: #1e3428;
+    --ok: #66c08f;
+    --ok-soft: #17301f;
     --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 4px 16px rgb(0 0 0 / 0.25);
     --shadow-lg: 0 8px 40px rgb(0 0 0 / 0.5);
     color-scheme: dark;
