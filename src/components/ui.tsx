@@ -6,19 +6,18 @@ import clsx from "clsx";
 import { X } from "lucide-react";
 
 export function BrandMark({ className }: { className?: string }) {
-  // めぐる輪（主色）と、器・芽（葉の緑）。色は配色トークンに追従してライト/ダークで切り替わる
+  // 上から見た朱の器と墨の箸。色は配色トークンに追従してライト/ダークで切り替わる
   return (
     <svg viewBox="0 0 512 512" className={className} aria-hidden>
       <rect width="512" height="512" rx="128" fill="var(--surface)" />
+      <circle cx="236" cy="290" r="120" fill="var(--accent)" />
       <path
-        d="M362.7 175.4A148 148 0 1 1 230.3 122.2"
+        d="M300 96L452 248M340 72L476 208"
         fill="none"
-        stroke="var(--accent)"
-        strokeWidth="52"
+        stroke="var(--leaf)"
+        strokeWidth="26"
         strokeLinecap="round"
       />
-      <path d="M286 132C286 84 318 56 376 52C380 106 346 136 286 132Z" fill="var(--leaf)" />
-      <path d="M188 252h136a68 68 0 0 1 -136 0z" fill="var(--leaf)" />
     </svg>
   );
 }
