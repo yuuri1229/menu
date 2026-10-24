@@ -2,6 +2,8 @@ import type { ComponentType } from "react";
 import type { IconBaseProps } from "react-icons";
 import {
   MdOutlineAccountBalanceWallet,
+  MdOutlineAdd,
+  MdOutlineDelete,
   MdOutlineAccountCircle,
   MdOutlineAddBox,
   MdOutlineArrowForward,
@@ -62,6 +64,8 @@ function material(Base: ComponentType<IconBaseProps>, name: string): AppIcon {
   return Icon;
 }
 
+export const Plus = material(MdOutlineAdd, "Plus");
+export const Trash = material(MdOutlineDelete, "Trash");
 export const ArrowRight = material(MdOutlineArrowForward, "ArrowRight");
 export const Bell = material(MdOutlineNotifications, "Bell");
 export const BellOff = material(MdOutlineNotificationsOff, "BellOff");

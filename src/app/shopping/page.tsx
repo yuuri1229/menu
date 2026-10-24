@@ -4,9 +4,10 @@ import Link from "next/link";
 import { Suspense, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import clsx from "clsx";
-import { Check, ChevronLeft, ChevronRight, NotebookText, ShoppingBasket, Snowflake } from "@/components/icons";
+import { Check, ChevronLeft, ChevronRight, NotebookText, Pencil, Plus, ShoppingBasket, Snowflake, Trash } from "@/components/icons";
+import { Chips, Field, PrimaryButton, inputClass } from "@/components/Form";
 import { PageHeader } from "@/components/PageHeader";
-import { Empty, LoadingCards, Progress, Segmented } from "@/components/ui";
+import { Empty, LoadingCards, Progress, Segmented, Sheet } from "@/components/ui";
 import { useData } from "@/lib/data";
 import { useNow } from "@/lib/now";
 import { md, mdw, relativeDay, weekStart } from "@/lib/date";
@@ -31,8 +32,10 @@ interface Trip {
 
 function Shopping() {
   const params = useSearchParams();
-  const { ingredients, notes, status, setBought } = useData();
+  const { ingredients, notes, purchases, status, setBought, removeIngredient } = useData();
   const [hideDone, setHideDone] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [adding, setAdding] = useState(false);
   const { today } = useNow();
 
   const trips = useMemo<Trip[]>(() => {
@@ -82,6 +85,12 @@ function Shopping() {
   // チェックは「買った」として保存され、Claude もほかの端末も同じ状態を見る
   const isChecked = (i: Ingredient) => i.bought;
   const toggle = (i: Ingredient) => setBought(i.id, !i.bought);
+  // 献立や買い物明細が指している食材は消さない（Claude の CLI と同じ決まり）
+  const usedBy = (i: Ingredient) =>
+    i.mealIds.length ? "献立で使う食材" : purchases.some((p) => p.ingredientIds?.includes(i.id)) ? "明細に記録済み" : null;
+  const remove = (i: Ingredient) => {
+    if (window.confirm(`「${i.name}」を買い物リストから消しますか？`)) removeIngredient(i.id);
+  };
 
   const done = trip.items.filter(isChecked).length;
   const estimate = sum(trip.items.map((i) => i.estimate));
@@ -170,6 +179,18 @@ function Shopping() {
         >
           チェック済みを隠す
         </button>
+        <button
+          type="button"
+          onClick={() => setEditMode((m) => !m)}
+          aria-pressed={editMode}
+          className={clsx(
+            "tap flex items-center gap-1 rounded-full px-3.5 py-1.5 text-[13px] font-medium",
+            editMode ? "bg-ink text-bg" : "bg-surface text-ink-2 shadow-card",
+          )}
+        >
+          <Pencil className="size-4" />
+          {editMode ? "編集を終える" : "編集"}
+        </button>
         {note && (
           <Link href={`/notes?id=${note.id}`} className="tap ml-auto flex items-center gap-1 rounded-full px-3 py-1.5 text-[13px] text-accent-text">
             <NotebookText className="size-4" />
@@ -192,13 +213,13 @@ function Shopping() {
                 {visible.map((i) => {
                   const checked = isChecked(i);
                   return (
-                    <li key={i.id}>
+                    <li key={i.id} className="flex items-center">
                       <button
                         type="button"
                         role="checkbox"
                         aria-checked={checked}
                         onClick={() => toggle(i)}
-                        className="tap flex w-full items-center gap-3 px-4 py-3.5 text-left active:bg-surface-2"
+                        className="tap flex min-w-0 flex-1 items-center gap-3 px-4 py-3.5 text-left active:bg-surface-2"
                       >
                         <span
                           className={clsx(
@@ -220,6 +241,19 @@ function Shopping() {
                           {i.storage === "冷蔵" && <Snowflake className="size-3.5 text-night" aria-label="冷蔵" />}
                         </span>
                       </button>
+                      {editMode &&
+                        (usedBy(i) ? (
+                          <span className="w-16 shrink-0 pr-3 text-right text-[11px] leading-tight text-ink-3">{usedBy(i)}</span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => remove(i)}
+                            aria-label={`${i.name}を買い物リストから消す`}
+                            className="tap mr-2 grid size-11 shrink-0 place-items-center rounded-full text-danger active:bg-danger-soft"
+                          >
+                            <Trash className="size-5" />
+                          </button>
+                        ))}
                     </li>
                   );
                 })}
@@ -229,11 +263,98 @@ function Shopping() {
         })}
       </div>
 
+      <button
+        type="button"
+        onClick={() => setAdding(true)}
+        className="tap mt-4 flex w-full min-h-12 items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-line text-[15px] font-medium text-accent-text"
+      >
+        <Plus className="size-5" />
+        この回に買う物を足す
+      </button>
+      {adding && <AddSheet trip={trip} onClose={() => setAdding(false)} />}
+
       <p className="mt-6 text-center text-[12px] leading-relaxed text-ink-3">
         チェックすると「買った」として保存され、ほかの端末や Claude にもすぐ伝わります。
         <br />
         電波がない店内でも押せます（つながったときに送られます）。
       </p>
     </>
+  );
+}
+
+const STORAGES = ["冷蔵", "冷凍", "常温"] as const;
+
+/** 買い物回に食材を足す。献立には結び付かない「ついで買い」として保存され、Claude も次に読んだときに見る */
+function AddSheet({ trip, onClose }: { trip: Trip; onClose: () => void }) {
+  const { addIngredient, ingredients } = useData();
+  const [name, setName] = useState("");
+  const [amount, setAmount] = useState("");
+  const [estimate, setEstimate] = useState("");
+  const [category, setCategory] = useState<string | null>(null);
+  const [storage, setStorage] = useState<string | null>(null);
+  const [memo, setMemo] = useState("");
+  const categories = [...new Set([...CATEGORY_ORDER, ...ingredients.map((i) => i.category).filter((c): c is string => !!c)])];
+
+  const save = () => {
+    addIngredient({
+      name: name.trim(),
+      category: category ?? "その他",
+      storage,
+      trip: trip.label,
+      tripDate: trip.date,
+      amount: amount.trim(),
+      estimate: estimate ? Number(estimate) : null,
+      bought: false,
+      memo: memo.trim(),
+    });
+    onClose();
+  };
+
+  return (
+    <Sheet
+      open
+      onClose={onClose}
+      title={
+        <div>
+          <p className="text-[13px] text-ink-3">{trip.label}</p>
+          <h2 className="mt-1 font-display text-[20px] leading-snug font-bold">買う物を足す</h2>
+        </div>
+      }
+      footer={
+        <PrimaryButton disabled={!name.trim()} onClick={save}>
+          <Plus className="size-5" />
+          リストに足す
+        </PrimaryButton>
+      }
+    >
+      <div className="space-y-5">
+        <Field label="品名">
+          <input value={name} onChange={(e) => setName(e.target.value)} maxLength={60} placeholder="例：牛乳" className={inputClass} />
+        </Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="量">
+            <input value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="例：1本" className={inputClass} />
+          </Field>
+          <Field label="目安の金額（円）">
+            <input
+              inputMode="numeric"
+              value={estimate}
+              onChange={(e) => setEstimate(e.target.value.replace(/\D/g, ""))}
+              placeholder="例：200"
+              className={clsx(inputClass, "num")}
+            />
+          </Field>
+        </div>
+        <Field label="分類">
+          <Chips label="分類" value={category} options={categories} onChange={setCategory} />
+        </Field>
+        <Field label="保存場所">
+          <Chips label="保存場所" value={storage as (typeof STORAGES)[number] | null} options={STORAGES} onChange={setStorage} />
+        </Field>
+        <Field label="メモ">
+          <input value={memo} onChange={(e) => setMemo(e.target.value)} maxLength={200} placeholder="例：安ければ2本" className={inputClass} />
+        </Field>
+      </div>
+    </Sheet>
   );
 }
