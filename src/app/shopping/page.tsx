@@ -266,14 +266,14 @@ function Shopping() {
       <button
         type="button"
         onClick={() => setAdding(true)}
-        className="tap mt-4 flex w-full min-h-12 items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-line text-[15px] font-medium text-accent-text"
+        className="tap fixed right-4 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-30 flex min-h-14 items-center gap-2 rounded-2xl bg-accent px-5 text-[15px] font-bold text-accent-ink shadow-float md:right-8 md:bottom-8"
       >
-        <Plus className="size-5" />
-        この回に買う物を足す
+        <Plus className="size-6" />
+        買う物を足す
       </button>
       {adding && <AddSheet trip={trip} onClose={() => setAdding(false)} />}
 
-      <p className="mt-6 text-center text-[12px] leading-relaxed text-ink-3">
+      <p className="mt-6 mb-20 text-center text-[12px] leading-relaxed text-ink-3">
         チェックすると「買った」として保存され、ほかの端末や Claude にもすぐ伝わります。
         <br />
         電波がない店内でも押せます（つながったときに送られます）。
