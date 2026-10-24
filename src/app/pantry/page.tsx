@@ -8,6 +8,7 @@ import { Chips, Field, PrimaryButton, inputClass } from "@/components/Form";
 import { PageHeader } from "@/components/PageHeader";
 import { Empty, LoadingCards, Pill, Sheet, type Tone } from "@/components/ui";
 import { useData } from "@/lib/data";
+import { categoryOptions } from "@/lib/categories";
 import { useNow } from "@/lib/now";
 import { diffDays, mdw } from "@/lib/date";
 import { groupBy } from "@/lib/format";
@@ -197,7 +198,6 @@ function Pantry() {
 const UNITS = ["個", "g", "本", "袋", "パック", "枚", "ml"] as const;
 type Unit = (typeof UNITS)[number];
 const STORAGES = ["冷蔵", "冷凍", "常温"] as const;
-const CATEGORIES = ["野菜", "肉", "卵・大豆製品", "乳製品・果物", "主食", "調味料", "その他"];
 
 /** 「200g」「3個」を数と単位に分ける。それ以外の書き方（「半分」など）は文字のまま扱う */
 function parseRemaining(text: string): { num: string; unit: Unit | null; free: string } {
@@ -219,7 +219,7 @@ function StockForm({ item, onClose }: { item: InventoryItem | null; onClose: () 
   const { today } = useNow();
   const parsed = parseRemaining(item?.remaining ?? "");
   const [name, setName] = useState(item?.name ?? "");
-  const [category, setCategory] = useState(item?.category ?? "");
+  const [category, setCategory] = useState<string | null>(item?.category ?? null);
   const [storage, setStorage] = useState<string | null>(item?.storage ?? null);
   const [status, setStatus] = useState<StockStatus | null>(item?.status ?? "十分");
   const [num, setNum] = useState(parsed.num);
@@ -229,7 +229,7 @@ function StockForm({ item, onClose }: { item: InventoryItem | null; onClose: () 
   const [purchasedAt, setPurchasedAt] = useState(item?.purchasedAt ?? (item ? "" : today));
   const [memo, setMemo] = useState(item?.memo ?? "");
 
-  const categories = [...new Set([...CATEGORIES, ...inventory.map((i) => i.category).filter((c): c is string => !!c)])];
+  const categories = categoryOptions(inventory.map((i) => i.category));
   const remaining = num && unit ? `${num}${unit}` : free.trim();
   const step = unit === "g" || unit === "ml" ? 50 : 1;
   const bump = (d: number) => {
@@ -242,7 +242,7 @@ function StockForm({ item, onClose }: { item: InventoryItem | null; onClose: () 
   const save = () => {
     saveInventory(item?.id ?? null, {
       name: name.trim(),
-      category: category.trim() || null,
+      category,
       storage,
       status,
       remaining,
@@ -359,12 +359,7 @@ function StockForm({ item, onClose }: { item: InventoryItem | null; onClose: () 
         </Field>
 
         <Field label="分類">
-          <input value={category} onChange={(e) => setCategory(e.target.value)} list="inventory-categories" placeholder="例：肉" className={inputClass} />
-          <datalist id="inventory-categories">
-            {categories.map((c) => (
-              <option key={c} value={c} />
-            ))}
-          </datalist>
+          <Chips label="分類" value={category} options={categories} onChange={setCategory} />
         </Field>
 
         <Field label="メモ">

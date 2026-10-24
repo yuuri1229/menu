@@ -9,12 +9,13 @@ import { Chips, Field, PrimaryButton, inputClass } from "@/components/Form";
 import { PageHeader } from "@/components/PageHeader";
 import { Empty, LoadingCards, Progress, Segmented, Sheet } from "@/components/ui";
 import { useData } from "@/lib/data";
+import { CATEGORIES, categoryOptions } from "@/lib/categories";
 import { useNow } from "@/lib/now";
 import { md, mdw, relativeDay, weekStart } from "@/lib/date";
 import { groupBy, sum, yen } from "@/lib/format";
 import type { Ingredient } from "@/lib/types";
 
-const CATEGORY_ORDER = ["野菜", "肉", "卵・大豆製品", "乳製品・果物", "主食", "その他"];
+const CATEGORY_ORDER: readonly string[] = CATEGORIES;
 export default function ShoppingPage() {
   return (
     <Suspense fallback={<LoadingCards />}>
@@ -293,7 +294,7 @@ function AddSheet({ trip, onClose }: { trip: Trip; onClose: () => void }) {
   const [category, setCategory] = useState<string | null>(null);
   const [storage, setStorage] = useState<string | null>(null);
   const [memo, setMemo] = useState("");
-  const categories = [...new Set([...CATEGORY_ORDER, ...ingredients.map((i) => i.category).filter((c): c is string => !!c)])];
+  const categories = categoryOptions(ingredients.map((i) => i.category));
 
   const save = () => {
     addIngredient({
