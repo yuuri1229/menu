@@ -100,8 +100,10 @@ export const COLLECTIONS = Object.keys(SCHEMA);
 /** アプリ（ログインしたメンバー）が書き換えてよい項目。firestore.rules と同じにする */
 export const MEMBER_WRITABLE = {
   meals: ["done"],
+  // 買い物リストは「買った」に加えて、項目の追加と（献立・明細が指していなければ）削除
   ingredients: ["bought"],
-  inventory: ["status"],
+  // 在庫は新規登録と、魚介の確認（seafood）以外の項目の編集
+  inventory: ["name", "category", "storage", "status", "remaining", "memo", "bestBefore", "purchasedAt"],
   // 感想は文書ごと書く（reflectedAt は空に戻すことだけできる）
   feedback: ["mealId", "mealTitle", "date", "slot", "verdict", "tags", "text", "uid", "updatedAt", "reflectedAt"],
 };

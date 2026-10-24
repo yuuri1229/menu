@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { collection, doc, onSnapshot, setDoc, updateDoc } from "firebase/firestore";
+import { addDoc, collection, deleteDoc, doc, onSnapshot, setDoc, updateDoc } from "firebase/firestore";
 import { DEMO } from "./config";
 import { getDb, getFirebaseAuth } from "./firebase";
 import { parseMarkdown } from "./markdown";
@@ -22,10 +22,19 @@ interface DataApi extends Snapshot {
   setMealDone: (id: string, done: boolean) => void;
   setBought: (id: string, bought: boolean) => void;
   setStock: (id: string, status: StockStatus) => void;
+  /** 在庫を登録（id なし）または編集する */
+  saveInventory: (id: string | null, fields: InventoryFields) => void;
+  /** 買い物リストに食材を足す／消す（献立や明細が指す食材は消さない） */
+  addIngredient: (fields: IngredientFields) => void;
+  removeIngredient: (id: string) => void;
   /** 献立の id → その献立への感想 */
   feedbackByMeal: Map<string, Feedback>;
   sendFeedback: (meal: Meal, input: { verdict: Verdict; tags: FeedbackTag[]; text: string }) => void;
 }
+
+/** アプリから書ける在庫の項目（魚介の確認 seafood は Claude が付ける） */
+export type InventoryFields = Pick<InventoryItem, "name" | "category" | "storage" | "status" | "remaining" | "memo" | "bestBefore" | "purchasedAt">;
+export type IngredientFields = Omit<Ingredient, "id" | "actual" | "mealIds">;
 
 const DataContext = createContext<DataApi | null>(null);
 
@@ -117,6 +126,43 @@ export function DataProvider({ children }: { children: ReactNode }) {
     );
   }, []);
 
+  const onWriteError = useCallback((what: string) => (e: { code?: string }) =>
+    setWriteError(
+      e.code === "permission-denied"
+        ? `${what}を保存する権限がありません。Firestore のルールが反映されているか確認してください。`
+        : `${what}を保存できませんでした。通信の良いところでもう一度試してください。`,
+    ), []);
+
+  const saveInventory = useCallback<DataApi["saveInventory"]>((id, fields) => {
+    if (DEMO) {
+      setRaw((s) => ({
+        ...s,
+        inventory: id
+          ? s.inventory.map((d) => (d.id === id ? { ...d, ...fields } : d))
+          : [...s.inventory, { ...fields, seafood: null, id: `demo-${Date.now()}` }],
+      }));
+      return;
+    }
+    const db = getDb();
+    (id ? updateDoc(doc(db, "inventory", id), fields) : addDoc(collection(db, "inventory"), { ...fields, seafood: null })).catch(onWriteError("在庫"));
+  }, [onWriteError]);
+
+  const addIngredient = useCallback<DataApi["addIngredient"]>((fields) => {
+    if (DEMO) {
+      setRaw((s) => ({ ...s, ingredients: [...s.ingredients, { ...fields, id: `demo-${Date.now()}` }] }));
+      return;
+    }
+    addDoc(collection(getDb(), "ingredients"), fields).catch(onWriteError("買い物リスト"));
+  }, [onWriteError]);
+
+  const removeIngredient = useCallback<DataApi["removeIngredient"]>((id) => {
+    if (DEMO) {
+      setRaw((s) => ({ ...s, ingredients: s.ingredients.filter((d) => d.id !== id) }));
+      return;
+    }
+    deleteDoc(doc(getDb(), "ingredients", id)).catch(onWriteError("買い物リスト"));
+  }, [onWriteError]);
+
   /** 感想は献立ごとに1件。文書ごと書き直し、反映済みの印は外して Claude にもう一度読んでもらう */
   const sendFeedback = useCallback<DataApi["sendFeedback"]>((meal, { verdict, tags, text }) => {
     const data: Omit<Feedback, "id"> = {
@@ -160,9 +206,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
       setBought: (id, bought) => write("ingredients", id, "bought", bought),
       setStock: (id, status) => write("inventory", id, "status", status),
       feedbackByMeal: new Map(snap.feedback.map((f) => [f.mealId ?? f.id, f])),
+      saveInventory,
+      addIngredient,
+      removeIngredient,
       sendFeedback,
     };
-  }, [raw, loaded, error, writeError, write, sendFeedback]);
+  }, [raw, loaded, error, writeError, write, sendFeedback, saveInventory, addIngredient, removeIngredient]);
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 }
