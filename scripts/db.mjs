@@ -103,6 +103,7 @@ const app = process.env.FIRESTORE_EMULATOR_HOST
   ? initializeApp({ projectId: process.env.GCLOUD_PROJECT ?? "demo-kondate" })
   : initializeApp({ credential: credential() });
 const db = getFirestore(app);
+db.settings({ preferRest: true }); // クラウド環境のプロキシは gRPC を通さないため REST で接続する
 
 async function loadAll() {
   const snap = {};
