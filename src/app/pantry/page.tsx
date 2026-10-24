@@ -175,11 +175,13 @@ function Pantry() {
       <button
         type="button"
         onClick={() => setCreating(true)}
-        className="tap mt-4 flex w-full min-h-12 items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-line text-[15px] font-medium text-accent-text"
+        className="tap fixed right-4 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-30 flex min-h-14 items-center gap-2 rounded-2xl bg-accent px-5 text-[15px] font-bold text-accent-ink shadow-float md:right-8 md:bottom-8"
       >
-        <Plus className="size-5" />
-        在庫を登録する
+        <Plus className="size-6" />
+        在庫を登録
       </button>
+      {/* 右下の登録ボタンで最後の行が隠れないように */}
+      <div className="h-20" aria-hidden />
       <StockSheet
         item={inventory.find((i) => i.id === editing) ?? null}
         creating={creating}
