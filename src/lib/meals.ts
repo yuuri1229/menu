@@ -1,10 +1,10 @@
 import { PREP_KEYWORDS } from "./config";
 import type { Meal, Slot } from "./types";
 
-export const SLOT_META: Record<Slot, { short: string; label: string; tone: "morning" | "noon" | "night"; emoji: string }> = {
-  朝食: { short: "朝", label: "朝ごはん", tone: "morning", emoji: "🌅" },
-  昼食: { short: "昼", label: "昼ごはん", tone: "noon", emoji: "☀️" },
-  夕食: { short: "夜", label: "夜ごはん", tone: "night", emoji: "🌙" },
+export const SLOT_META: Record<Slot, { short: string; label: string; tone: "morning" | "noon" | "night"}> = {
+  朝食: { short: "朝", label: "朝ごはん", tone: "morning" },
+  昼食: { short: "昼", label: "昼ごはん", tone: "noon" },
+  夕食: { short: "夜", label: "夜ごはん", tone: "night" },
 };
 
 const SLOT_ORDER: Record<string, number> = { 朝食: 0, 昼食: 1, 夕食: 2 };

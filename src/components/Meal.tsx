@@ -2,7 +2,7 @@
 
 import clsx from "clsx";
 import { useState } from "react";
-import { Check, ChefHat, CircleCheck, Clock, Lightbulb, MessageCircleHeart, Minus, Pencil, ShoppingBasket, Sparkles, ThumbsDown, ThumbsUp } from "lucide-react";
+import { Check, ChefHat, CircleCheck, Clock, Lightbulb, MessageCircleHeart, Minus, Pencil, ShoppingBasket, Sparkles, ThumbsDown, ThumbsUp, Bento } from "@/components/icons";
 import { useData } from "@/lib/data";
 import { mdw, wd } from "@/lib/date";
 import { yen } from "@/lib/format";
@@ -53,7 +53,7 @@ export function MealRow({ meal, slot, onOpen, compact }: { meal?: Meal; slot: Sl
       <span className={clsx("w-5 shrink-0 text-center text-[13px] font-bold", TONE_TEXT[meta.tone])}>{meta.short}</span>
       <span className="min-w-0 flex-1">
         <span className={clsx("block truncate text-[15px] font-medium", meal.done && "text-ink-2")}>
-          {isBento(meal) && <span aria-label="お弁当">🍱 </span>}
+          {isBento(meal) && <Bento className="mr-1 inline size-4 -translate-y-px align-middle text-ink-3" aria-label="お弁当" />}
           {head}
         </span>
         {!compact && (extras.length > 0 || meal.sides) && (

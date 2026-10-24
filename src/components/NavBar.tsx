@@ -4,13 +4,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useContext } from "react";
 import clsx from "clsx";
-import { BookOpen, CalendarDays, CircleUserRound, House, Refrigerator, ShoppingBasket, Wallet, type LucideIcon } from "lucide-react";
+import { BookOpen, CalendarDays, CircleUserRound, House, Refrigerator, ShoppingBasket, Wallet, type AppIcon } from "@/components/icons";
 import { useData } from "@/lib/data";
 import { timeAgo } from "@/lib/date";
 import { SettingsContext } from "./PageHeader";
 import { BrandMark } from "./ui";
 
-const TABS: { href: string; label: string; icon: LucideIcon }[] = [
+const TABS: { href: string; label: string; icon: AppIcon }[] = [
   { href: "/", label: "今日", icon: House },
   { href: "/week", label: "献立", icon: CalendarDays },
   { href: "/shopping", label: "買い物", icon: ShoppingBasket },

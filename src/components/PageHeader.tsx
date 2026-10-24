@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, type ReactNode } from "react";
-import { CircleUserRound } from "lucide-react";
+import { CircleUserRound } from "@/components/icons";
 
 export const SettingsContext = createContext<() => void>(() => {});
 

@@ -3,7 +3,7 @@
 import { useEffect, useId, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import clsx from "clsx";
-import { X } from "lucide-react";
+import { X } from "@/components/icons";
 
 export function BrandMark({ className }: { className?: string }) {
   // 上から見た朱の器と墨の箸。色は配色トークンに追従してライト/ダークで切り替わる

@@ -62,7 +62,7 @@ node scripts/db.mjs help
 
 **献立の感想を反映する（土曜のルーティンの最初、または「感想を反映して」）**
 1. `node scripts/db.mjs feedback` で反映待ちの感想を読む（献立名・評価・タグ・本文・食材が出る）。
-2. `notes/preferences`「好みの記録」の本文を更新する（「## 好きな味・料理」「## 苦手・控えたいもの」「## 味付けの調整」「## 量」。各行に日付と評価（好み/ふつう/合わない）を添える。無ければ id `preferences`・`kind: "page"`・`icon: "💬"` で作る）。
+2. `notes/preferences`「好みの記録」の本文を更新する（「## 好きな味・料理」「## 苦手・控えたいもの」「## 味付けの調整」「## 量」。各行に日付と評価（好み/ふつう/合わない）を添える。無ければ id `preferences`・`kind: "page"`で作る）。
 3. タグ「苦手な食材」や本文で苦手とはっきり書かれた食材は `notes/rules` の NG に足し、以後使わない。味付けや量の不満は好みの記録で調整し、1回の「合わない」だけで NG にしない。
 4. `node scripts/db.mjs feedback:done <id...>` で反映済みにする。翌週の献立で直した所は献立の `memo` と週ノートの「感想の反映」節に書く。
 5. 体調の異変（かゆみ・腫れなど）を思わせる感想があれば、献立より先にユーザーに確認する。
@@ -82,3 +82,6 @@ node scripts/db.mjs help
 
 データの項目を増やすときは `scripts/schema.mjs`・`src/lib/types.ts` をそろえ、アプリから書く項目を変えるなら
 `firestore.rules` と `MEMBER_WRITABLE` も直して `node scripts/db.mjs rules:deploy`（`main` に入ると GitHub Actions でも反映）。
+
+画面には絵文字を使わない（ユーザーの決まり）。アイコンはマテリアルデザインのもの（`src/components/icons.tsx`、react-icons の Outlined）だけを使い、
+新しいアイコンもそこに足す。ノートの `icon` や本文の絵文字は画面では表示しない。通知の文面にも絵文字を入れない。

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import clsx from "clsx";
-import { Receipt, Store } from "lucide-react";
+import { Receipt, Store } from "@/components/icons";
 import { PageHeader } from "@/components/PageHeader";
 import { Empty, LoadingCards, Pill, Progress, SectionTitle } from "@/components/ui";
 import { useData } from "@/lib/data";

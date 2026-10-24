@@ -40,18 +40,18 @@ export function buildReminder({ meals = [], ingredients = [] }, tomorrow) {
     const trip = toBuy[0].trip ?? "";
     const total = toBuy.reduce((s, i) => s + (i.estimate ?? 0), 0);
     const names = toBuy.slice(0, 4).map((i) => i.name).join("・");
-    lines.push(`🛒 買い物${trip ? ` ${trip.split(/\s/)[0]}` : ""}：${names}${toBuy.length > 4 ? ` ほか${toBuy.length - 4}品` : ""}${total ? `（約${total.toLocaleString("ja-JP")}円）` : ""}`);
+    lines.push(`買い物${trip ? ` ${trip.split(/\s/)[0]}` : ""}：${names}${toBuy.length > 4 ? ` ほか${toBuy.length - 4}品` : ""}${total ? `（約${total.toLocaleString("ja-JP")}円）` : ""}`);
   }
 
   const dayMeals = meals
     .filter((m) => m.date === tomorrow)
     .sort((a, b) => (SLOT_ORDER[a.slot] ?? 9) - (SLOT_ORDER[b.slot] ?? 9));
   const tips = [...new Set(dayMeals.flatMap((m) => prepTips(m.memo)))];
-  for (const t of tips.slice(0, 3)) lines.push(`⏰ ${t}`);
+  for (const t of tips.slice(0, 3)) lines.push(`段取り：${t}`);
 
   if (!lines.length) return null;
   const menu = dayMeals.map((m) => `${SLOT_SHORT[m.slot] ?? ""} ${shortTitle(m.title)}`).join("／");
-  if (menu) lines.push(`🍚 ${menu}`);
+  if (menu) lines.push(`献立：${menu}`);
   return {
     title: `明日 ${label(tomorrow)} の準備`,
     body: lines.join("\n"),

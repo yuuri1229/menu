@@ -2,7 +2,7 @@
 
 import { Fragment, type ReactNode } from "react";
 import clsx from "clsx";
-import { Check, ChevronDown, Info } from "lucide-react";
+import { Check, ChevronDown, Info, NotebookText } from "@/components/icons";
 import type { Block, RichText } from "@/lib/types";
 
 const COLOR: Record<string, string> = {
@@ -16,11 +16,17 @@ const COLOR: Record<string, string> = {
   brown: "text-[#9a6b43]",
 };
 
+/** ノートの本文に絵文字が入っていても画面には出さない（アイコンはマテリアルのものだけを使う） */
+const EMOJI = /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}\u{200D}]\s?/gu;
+export function stripEmoji(text: string) {
+  return text.replace(EMOJI, "");
+}
+
 export function Rich({ rich }: { rich?: RichText[] }) {
   return (
     <>
       {(rich ?? []).map((r, i) => {
-        let node: ReactNode = r.t;
+        let node: ReactNode = stripEmoji(r.t);
         if (r.c) node = <code className="rounded bg-surface-3 px-1 py-0.5 text-[0.9em]">{node}</code>;
         const cls = clsx(
           r.b && "font-bold",
@@ -192,8 +198,9 @@ function BlockView({ block: b }: { block: Block }) {
     case "page":
     case "database":
       return (
-        <p className="my-2 text-ink-3">
-          📄 <Rich rich={b.rich} />
+        <p className="my-2 flex items-center gap-1.5 text-ink-3">
+          <NotebookText className="size-4 shrink-0" />
+          <Rich rich={b.rich} />
         </p>
       );
     default:

@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import clsx from "clsx";
-import { CalendarDays, ChevronLeft, ChevronRight, Clock } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, Clock } from "@/components/icons";
 import { MealRow, MealSheet } from "@/components/Meal";
 import { PageHeader } from "@/components/PageHeader";
 import { Empty, LoadingCards } from "@/components/ui";

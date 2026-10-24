@@ -3,7 +3,7 @@
 import { Suspense, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import clsx from "clsx";
-import { Check, ChevronRight, Fish, Refrigerator, Search, Snowflake, TriangleAlert, X } from "lucide-react";
+import { Check, ChevronRight, Fish, Refrigerator, Search, Snowflake, TriangleAlert, X } from "@/components/icons";
 import { PageHeader } from "@/components/PageHeader";
 import { Empty, LoadingCards, Pill, Sheet, type Tone } from "@/components/ui";
 import { useData } from "@/lib/data";

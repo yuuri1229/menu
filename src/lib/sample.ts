@@ -217,7 +217,7 @@ export function sampleSnapshot(): Snapshot {
     "## 炊飯スケジュール",
     "- 月曜夜：2合 → 月曜夜〜火曜の4食",
     "- 水曜朝：3合（火曜夜に予約） → 水曜〜木曜の5食",
-    "> 🍚 炊いたご飯は1食分ずつラップで包み、冷蔵して翌日中に食べ切る",
+    "> 炊いたご飯は1食分ずつラップで包み、冷蔵して翌日中に食べ切る",
     `## ${trips[2].label} の買い物`,
     "- [ ] 千切りキャベツ 3袋 … 255円",
     "- [ ] もやし 1袋 … 40円",
@@ -241,8 +241,8 @@ export function sampleSnapshot(): Snapshot {
     purchases,
     inventory,
     notes: [
-      { id: "n-week", title: `買い物リスト・予算（${md(mon)}〜${md(addDays(mon, 6))}）`, icon: "🧾", kind: "week", start: mon, end: addDays(mon, 6), markdown: weekNote, blocks: [], editedAt: null },
-      { id: "n-rules", title: "前提条件・調理環境・買い物計画", icon: "📋", kind: "rules", start: null, end: null, markdown: rules, blocks: [], editedAt: null },
+      { id: "n-week", title: `買い物リスト・予算（${md(mon)}〜${md(addDays(mon, 6))}）`, icon: null, kind: "week", start: mon, end: addDays(mon, 6), markdown: weekNote, blocks: [], editedAt: null },
+      { id: "n-rules", title: "前提条件・調理環境・買い物計画", icon: null, kind: "rules", start: null, end: null, markdown: rules, blocks: [], editedAt: null },
     ],
     feedback: [],
   };
