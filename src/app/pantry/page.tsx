@@ -3,7 +3,7 @@
 import { Suspense, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import clsx from "clsx";
-import { Check, ChevronRight, Fish, Minus, Plus, Refrigerator, Search, Snowflake, TriangleAlert, X } from "@/components/icons";
+import { Check, ChevronRight, Fish, Minus, Plus, Refrigerator, Search, Snowflake, Trash, TriangleAlert, X } from "@/components/icons";
 import { Chips, Field, PrimaryButton, inputClass } from "@/components/Form";
 import { PageHeader } from "@/components/PageHeader";
 import { Empty, LoadingCards, Pill, Sheet, type Tone } from "@/components/ui";
@@ -215,7 +215,7 @@ function StockSheet({ item, creating, onClose }: { item: InventoryItem | null; c
 }
 
 function StockForm({ item, onClose }: { item: InventoryItem | null; onClose: () => void }) {
-  const { saveInventory, inventory } = useData();
+  const { saveInventory, removeInventory, inventory } = useData();
   const { today } = useNow();
   const parsed = parseRemaining(item?.remaining ?? "");
   const [name, setName] = useState(item?.name ?? "");
@@ -365,6 +365,21 @@ function StockForm({ item, onClose }: { item: InventoryItem | null; onClose: () 
         <Field label="メモ">
           <textarea value={memo} onChange={(e) => setMemo(e.target.value)} maxLength={300} rows={2} placeholder="例：半分は冷凍済み" className={inputClass} />
         </Field>
+
+        {item && (
+          <button
+            type="button"
+            onClick={() => {
+              if (!window.confirm(`「${item.name}」を在庫から削除しますか？元に戻せません。`)) return;
+              removeInventory(item.id);
+              onClose();
+            }}
+            className="tap flex w-full min-h-12 items-center justify-center gap-2 rounded-2xl border border-danger/40 text-[15px] font-medium text-danger active:bg-danger-soft"
+          >
+            <Trash className="size-5" />
+            この在庫を削除する
+          </button>
+        )}
       </div>
     </Sheet>
   );
