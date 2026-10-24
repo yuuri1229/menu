@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Share, SquarePlus, X } from "lucide-react";
+import { Share, SquarePlus, X } from "@/components/icons";
 
 const KEY = "kondate:install-hint-dismissed";
 

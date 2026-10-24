@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import clsx from "clsx";
-import { ArrowRight, Eye, EyeOff, LoaderCircle, Lock, Mail } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, LoaderCircle, Lock, Mail } from "@/components/icons";
 import { authErrorMessage, useAuth } from "@/lib/auth";
 import { InstallHint } from "./InstallHint";
 import { BrandMark } from "./ui";

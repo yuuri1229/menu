@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Bell, BellOff, BookOpen, ChevronRight, LogOut, RefreshCw } from "lucide-react";
+import { Bell, BellOff, BookOpen, ChevronRight, LogOut, RefreshCw } from "@/components/icons";
 import { useAuth } from "@/lib/auth";
 import { useData } from "@/lib/data";
 import { timeAgo } from "@/lib/date";

@@ -4,13 +4,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useContext } from "react";
 import clsx from "clsx";
-import { BookOpen, CalendarDays, CircleUserRound, House, Refrigerator, ShoppingBasket, Wallet, type LucideIcon } from "lucide-react";
+import { BookOpen, CalendarDays, CircleUserRound, House, Refrigerator, ShoppingBasket, Wallet, type AppIcon } from "@/components/icons";
 import { useData } from "@/lib/data";
 import { timeAgo } from "@/lib/date";
 import { SettingsContext } from "./PageHeader";
 import { BrandMark } from "./ui";
 
-const TABS: { href: string; label: string; icon: LucideIcon }[] = [
+const TABS: { href: string; label: string; icon: AppIcon }[] = [
   { href: "/", label: "今日", icon: House },
   { href: "/week", label: "献立", icon: CalendarDays },
   { href: "/shopping", label: "買い物", icon: ShoppingBasket },
@@ -52,7 +52,7 @@ export function NavBar() {
                   aria-current={active ? "page" : undefined}
                   onClick={(e) => scrollTopIfActive(e, active)}
                   className={clsx(
-                    "tap flex flex-col items-center gap-0.5 pt-2 pb-1.5 text-[11px] font-medium",
+                    "tap flex flex-col items-center gap-0.5 min-h-14 pt-2 pb-1.5 text-[11px] font-medium",
                     active ? "text-accent-text" : "text-ink-3",
                   )}
                 >

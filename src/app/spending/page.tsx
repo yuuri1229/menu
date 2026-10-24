@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import clsx from "clsx";
-import { Receipt, Store } from "lucide-react";
+import { Receipt, Store } from "@/components/icons";
 import { PageHeader } from "@/components/PageHeader";
 import { Empty, LoadingCards, Pill, Progress, SectionTitle } from "@/components/ui";
 import { useData } from "@/lib/data";
@@ -55,7 +55,7 @@ export default function SpendingPage() {
                 ["調味料ほか", w?.other ?? 0],
               ].map(([label, v]) => (
                 <div key={label as string} className="rounded-xl bg-surface-2 py-2.5">
-                  <dt className="text-[11px] text-ink-3">{label}</dt>
+                  <dt className="text-[12px] text-ink-3">{label}</dt>
                   <dd className="num mt-0.5 text-[15px] font-bold">{yen(v as number)}</dd>
                 </div>
               ))}
@@ -72,7 +72,7 @@ export default function SpendingPage() {
                     style={{ bottom: `${(WEEKLY_BUDGET / maxBar) * 100}%` }}
                     aria-hidden
                   >
-                    <span className="absolute -top-5 right-0 text-[10px] text-accent-text">予算</span>
+                    <span className="absolute -top-5 right-0 text-[11px] text-accent-text">予算</span>
                   </div>
                   {history.map((hw) => {
                     const v = byWeek.get(hw)?.food ?? 0;
@@ -86,7 +86,7 @@ export default function SpendingPage() {
                         aria-label={`${md(hw)}の週 ${yen(v)}`}
                         className="tap group flex h-full flex-1 flex-col items-center justify-end"
                       >
-                        <span className={clsx("num mb-1 text-[10px]", active ? "font-bold text-ink" : "text-ink-3")}>
+                        <span className={clsx("num mb-1 text-[11px]", active ? "font-bold text-ink" : "text-ink-3")}>
                           {v ? `${(v / 1000).toFixed(1)}k` : ""}
                         </span>
                         <span
@@ -103,7 +103,7 @@ export default function SpendingPage() {
                 </div>
                 <div className="mt-1.5 flex gap-2">
                   {history.map((hw) => (
-                    <span key={hw} className={clsx("num flex-1 text-center text-[10px]", hw === week ? "font-bold text-ink" : "text-ink-3")}>
+                    <span key={hw} className={clsx("num flex-1 text-center text-[11px]", hw === week ? "font-bold text-ink" : "text-ink-3")}>
                       {md(hw)}
                     </span>
                   ))}
@@ -145,7 +145,7 @@ export default function SpendingPage() {
                         <li key={p.id} className="flex items-start gap-3 px-4 py-2.5">
                           <div className="min-w-0 flex-1">
                             <p className="text-[14px]">{p.name}</p>
-                            <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[11px] text-ink-3">
+                            <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[12px] text-ink-3">
                               {p.store && <span>{p.store}</span>}
                               {isRice(p) && <Pill>米・別枠</Pill>}
                               {!countsToBudget(p) && !isRice(p) && p.category && <Pill>{p.category}</Pill>}

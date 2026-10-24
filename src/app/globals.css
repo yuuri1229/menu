@@ -7,7 +7,7 @@
   --surface-3: #ecebe8;
   --ink: #1f1e1d;
   --ink-2: #666360;
-  --ink-3: #8c8884;
+  --ink-3: #75716d;
   --line: #e4e2df;
   /* MEGURU の主色（朱）。文字にするときは --accent-text */
   --accent: #b5361f;
@@ -41,7 +41,7 @@
     --surface-3: #2c2c2c;
     --ink: #efeeec;
     --ink-2: #aaa7a3;
-    --ink-3: #7d7a76;
+    --ink-3: #8f8c88;
     --line: #2c2c2c;
     --accent: #ef7a62;
     --accent-text: #ef7a62;

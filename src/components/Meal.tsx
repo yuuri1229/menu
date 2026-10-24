@@ -2,7 +2,7 @@
 
 import clsx from "clsx";
 import { useState } from "react";
-import { Check, ChefHat, CircleCheck, Clock, Lightbulb, MessageCircleHeart, Minus, Pencil, ShoppingBasket, Sparkles, ThumbsDown, ThumbsUp } from "lucide-react";
+import { Check, ChefHat, CircleCheck, Clock, Lightbulb, MessageCircleHeart, Minus, Pencil, ShoppingBasket, Sparkles, ThumbsDown, ThumbsUp, Bento } from "@/components/icons";
 import { useData } from "@/lib/data";
 import { mdw, wd } from "@/lib/date";
 import { yen } from "@/lib/format";
@@ -53,7 +53,7 @@ export function MealRow({ meal, slot, onOpen, compact }: { meal?: Meal; slot: Sl
       <span className={clsx("w-5 shrink-0 text-center text-[13px] font-bold", TONE_TEXT[meta.tone])}>{meta.short}</span>
       <span className="min-w-0 flex-1">
         <span className={clsx("block truncate text-[15px] font-medium", meal.done && "text-ink-2")}>
-          {isBento(meal) && <span aria-label="お弁当">🍱 </span>}
+          {isBento(meal) && <Bento className="mr-1 inline size-4 -translate-y-px align-middle text-ink-3" aria-label="お弁当" />}
           {head}
         </span>
         {!compact && (extras.length > 0 || meal.sides) && (
@@ -328,7 +328,7 @@ function FeedbackSection({ meal }: { meal: Meal }) {
                   placeholder="味の好み・風味・苦手な食材・調味料など（任意）"
                   className="block w-full resize-none rounded-xl border border-line bg-surface px-3 py-2 text-[16px] leading-relaxed outline-none placeholder:text-ink-3 focus:border-accent"
                 />
-                <span className="num mt-1 block text-right text-[11px] text-ink-3">
+                <span className="num mt-1 block text-right text-[12px] text-ink-3">
                   {text.length}/{FEEDBACK_TEXT_MAX}
                 </span>
               </label>

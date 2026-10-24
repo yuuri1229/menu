@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Suspense, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import clsx from "clsx";
-import { Check, ChevronLeft, ChevronRight, NotebookText, ShoppingBasket, Snowflake } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, NotebookText, ShoppingBasket, Snowflake } from "@/components/icons";
 import { PageHeader } from "@/components/PageHeader";
 import { Empty, LoadingCards, Progress, Segmented } from "@/components/ui";
 import { useData } from "@/lib/data";

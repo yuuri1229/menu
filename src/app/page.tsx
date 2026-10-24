@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import clsx from "clsx";
-import { ChevronRight, Lightbulb, Refrigerator, ShoppingBasket, TriangleAlert, Wallet } from "lucide-react";
+import { ChevronRight, Lightbulb, Refrigerator, ShoppingBasket, TriangleAlert, Wallet } from "@/components/icons";
 import { MealHero, MealRow, MealSheet } from "@/components/Meal";
 import { InstallHint } from "@/components/InstallHint";
 import { PageHeader } from "@/components/PageHeader";
