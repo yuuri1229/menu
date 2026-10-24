@@ -107,7 +107,7 @@ service cloud.firestore {
       allow delete: if isMember();
     }
 
-    // 家の在庫。アプリから新しく登録し、名前・数量・期限・状態などを直せる（魚介の確認は Claude が付ける）
+    // 家の在庫。アプリから新しく登録・削除し、名前・数量・期限・状態などを直せる（魚介の確認は Claude が付ける）
     match /inventory/{id} {
       function validInventory() {
         let d = request.resource.data;
@@ -125,6 +125,7 @@ service cloud.firestore {
       allow update: if isMember() && validInventory()
         && request.resource.data.diff(resource.data).affectedKeys()
           .hasOnly(['name', 'category', 'storage', 'status', 'remaining', 'memo', 'bestBefore', 'purchasedAt']);
+      allow delete: if isMember();
     }
   }
 }

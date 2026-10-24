@@ -24,6 +24,7 @@ interface DataApi extends Snapshot {
   setStock: (id: string, status: StockStatus) => void;
   /** 在庫を登録（id なし）または編集する */
   saveInventory: (id: string | null, fields: InventoryFields) => void;
+  removeInventory: (id: string) => void;
   /** 買い物リストに食材を足す／消す（献立や明細が指す食材は消さない） */
   addIngredient: (fields: IngredientFields) => void;
   removeIngredient: (id: string) => void;
@@ -147,6 +148,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
     (id ? updateDoc(doc(db, "inventory", id), fields) : addDoc(collection(db, "inventory"), { ...fields, seafood: null })).catch(onWriteError("在庫"));
   }, [onWriteError]);
 
+  const removeInventory = useCallback<DataApi["removeInventory"]>((id) => {
+    if (DEMO) {
+      setRaw((s) => ({ ...s, inventory: s.inventory.filter((d) => d.id !== id) }));
+      return;
+    }
+    deleteDoc(doc(getDb(), "inventory", id)).catch(onWriteError("在庫"));
+  }, [onWriteError]);
+
   const addIngredient = useCallback<DataApi["addIngredient"]>((fields) => {
     if (DEMO) {
       setRaw((s) => ({ ...s, ingredients: [...s.ingredients, { ...fields, id: `demo-${Date.now()}` }] }));
@@ -207,11 +216,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
       setStock: (id, status) => write("inventory", id, "status", status),
       feedbackByMeal: new Map(snap.feedback.map((f) => [f.mealId ?? f.id, f])),
       saveInventory,
+      removeInventory,
       addIngredient,
       removeIngredient,
       sendFeedback,
     };
-  }, [raw, loaded, error, writeError, write, sendFeedback, saveInventory, addIngredient, removeIngredient]);
+  }, [raw, loaded, error, writeError, write, sendFeedback, saveInventory, removeInventory, addIngredient, removeIngredient]);
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 }
