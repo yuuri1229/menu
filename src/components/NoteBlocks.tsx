@@ -2,7 +2,7 @@
 
 import { Fragment, type ReactNode } from "react";
 import clsx from "clsx";
-import { Check, ChevronDown } from "lucide-react";
+import { Check, ChevronDown, Info } from "lucide-react";
 import type { Block, RichText } from "@/lib/types";
 
 const COLOR: Record<string, string> = {
@@ -146,7 +146,7 @@ function BlockView({ block: b }: { block: Block }) {
     case "callout":
       return (
         <div className="my-3 flex gap-2.5 rounded-xl bg-surface-2 px-3.5 py-3">
-          {b.icon && <span aria-hidden>{b.icon}</span>}
+          <Info className="mt-1 size-4 shrink-0 text-ink-3" aria-hidden />
           <div className="min-w-0">
             <Rich rich={b.rich} />
             {b.children && <Blocks blocks={b.children} />}

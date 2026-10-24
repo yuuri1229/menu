@@ -153,7 +153,7 @@ function Week() {
                     {Number(d.slice(8))}
                   </span>
                   <span className="font-display font-bold">{wd(d)}曜日</span>
-                  {isToday && <span className="rounded-full bg-accent-soft px-2 py-0.5 text-[11px] font-bold text-accent-text">今日</span>}
+                  {isToday && <span className="rounded-full bg-accent-soft px-2 py-0.5 text-[12px] font-bold text-accent-text">今日</span>}
                   <span className="num ml-auto text-[12px] text-ink-3">{list.length ? `計${sum(list.map((m) => m.minutes))}分` : ""}</span>
                 </header>
                 <div className="divide-y divide-line">

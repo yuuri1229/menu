@@ -52,7 +52,7 @@ export function NavBar() {
                   aria-current={active ? "page" : undefined}
                   onClick={(e) => scrollTopIfActive(e, active)}
                   className={clsx(
-                    "tap flex flex-col items-center gap-0.5 pt-2 pb-1.5 text-[11px] font-medium",
+                    "tap flex flex-col items-center gap-0.5 min-h-14 pt-2 pb-1.5 text-[11px] font-medium",
                     active ? "text-accent-text" : "text-ink-3",
                   )}
                 >

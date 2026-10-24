@@ -328,7 +328,7 @@ function FeedbackSection({ meal }: { meal: Meal }) {
                   placeholder="味の好み・風味・苦手な食材・調味料など（任意）"
                   className="block w-full resize-none rounded-xl border border-line bg-surface px-3 py-2 text-[16px] leading-relaxed outline-none placeholder:text-ink-3 focus:border-accent"
                 />
-                <span className="num mt-1 block text-right text-[11px] text-ink-3">
+                <span className="num mt-1 block text-right text-[12px] text-ink-3">
                   {text.length}/{FEEDBACK_TEXT_MAX}
                 </span>
               </label>

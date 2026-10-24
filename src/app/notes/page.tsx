@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { ChevronDown, ChevronLeft, ChevronRight, NotebookText } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, ClipboardList, NotebookText, ReceiptText, StickyNote } from "lucide-react";
 import { Blocks, Rich, richToText, splitSections } from "@/components/NoteBlocks";
 import { PageHeader } from "@/components/PageHeader";
 import { Empty, LoadingCards, Pill } from "@/components/ui";
@@ -50,8 +50,8 @@ function NoteList({ notes }: { notes: Note[] }) {
             return (
               <li key={n.id}>
                 <Link href={`/notes?id=${n.id}`} className="tap flex items-center gap-3 px-4 py-3.5 hover:bg-surface-2">
-                  <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-surface-3 text-lg" aria-hidden>
-                    {n.icon ?? (n.kind === "rules" ? "📋" : "📄")}
+                  <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-surface-3 text-ink-2" aria-hidden>
+                    {n.kind === "rules" ? <ClipboardList className="size-5" strokeWidth={1.75} /> : n.kind === "week" ? <ReceiptText className="size-5" strokeWidth={1.75} /> : <StickyNote className="size-5" strokeWidth={1.75} />}
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate font-medium">{n.kind === "week" && n.start && n.end ? `${md(n.start)} – ${md(n.end)} の買い物・予算` : n.title}</span>
@@ -85,7 +85,7 @@ function NoteView({ note }: { note: Note }) {
           ノート
         </Link>
       </div>
-      <PageHeader eyebrow={note.icon ? `${note.icon} ノート` : "ノート"} title={note.title} />
+      <PageHeader eyebrow="ノート" title={note.title} />
 
       {sections.length > 2 && (
         <nav aria-label="目次" className="no-scrollbar sticky top-0 z-10 -mx-4 mb-3 flex gap-2 overflow-x-auto bg-bg/90 px-4 py-2 backdrop-blur pt-safe">

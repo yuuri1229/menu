@@ -85,7 +85,7 @@ export function Sheet({
             type="button"
             onClick={onClose}
             aria-label="閉じる"
-            className="tap -mr-1 grid size-9 shrink-0 place-items-center rounded-full bg-surface-3 text-ink-2"
+            className="tap -mr-1 grid size-11 shrink-0 place-items-center rounded-full bg-surface-3 text-ink-2"
           >
             <X className="size-[18px]" />
           </button>
@@ -103,7 +103,7 @@ export function Sheet({
 export function SectionTitle({ children, action }: { children: ReactNode; action?: ReactNode }) {
   return (
     <div className="mt-8 mb-3 flex items-baseline justify-between gap-3">
-      <h2 className="font-display text-[17px] font-bold">{children}</h2>
+      <h2 className="font-display text-[18px] font-bold">{children}</h2>
       {action}
     </div>
   );
@@ -132,12 +132,12 @@ export function Segmented<T extends string>({
             aria-selected={active}
             onClick={() => onChange(o.value)}
             className={clsx(
-              "tap min-w-0 flex-1 rounded-xl px-2 py-2 text-center text-[13px] font-medium transition-all",
+              "tap min-w-0 flex-1 min-h-11 rounded-xl px-2 py-2 text-center text-[14px] font-medium transition-all",
               active ? "bg-surface text-ink shadow-card" : "text-ink-2",
             )}
           >
             <span className="block truncate">{o.label}</span>
-            {o.sub && <span className="block truncate text-[11px] font-normal text-ink-3">{o.sub}</span>}
+            {o.sub && <span className="block truncate text-[12px] font-normal text-ink-3">{o.sub}</span>}
           </button>
         );
       })}
@@ -179,7 +179,7 @@ export type Tone = keyof typeof TONES;
 
 export function Pill({ tone = "neutral", children, className }: { tone?: Tone; children: ReactNode; className?: string }) {
   return (
-    <span className={clsx("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium whitespace-nowrap", TONES[tone], className)}>
+    <span className={clsx("inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[12px] font-medium whitespace-nowrap", TONES[tone], className)}>
       {children}
     </span>
   );
