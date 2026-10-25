@@ -10,6 +10,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { COLLECTIONS, checkRefs, validate } from "./schema.mjs";
 import { formatFeedback, pendingFeedback } from "./feedback.mjs";
 import { buildReminder, jstDate } from "./notify.mjs";
+import { formatPlan, pendingPlans } from "./plans.mjs";
 
 const HELP = `使い方: node scripts/db.mjs <コマンド> [引数]
 
@@ -22,6 +23,11 @@ const HELP = `使い方: node scripts/db.mjs <コマンド> [引数]
   feedback [--all] [--json]        反映待ちの感想を新しい献立の順に出す（--all は反映済みも）
   feedback:done <id...|--pending>  好みの記録にまとめた感想に反映済みの印を付ける
                                    （--pending は今の反映待ちを全部）
+
+外食・不在の予定（アプリの献立タブで登録・取り消し。献立を組み直したら反映済みにする）
+  plans [--all] [--json]           反映待ちの予定（新規・書き直し・取り消し）を日付の順に出す（--all は反映済みも）
+  plans:done <id...|--pending>     献立・食材・弁当を組み直した予定に反映済みの印を付ける
+                                   （取り消された予定は文書を消す）
 
 書く（--dry-run で内容だけ確認、--force で参照切れを無視）
   upsert <ファイル|->              {"meals":[{...}], ...} を書き込む。
@@ -293,6 +299,31 @@ try {
       if (missing.length) fail(`feedback に見つかりません: ${missing.join(", ")}`);
       const reflectedAt = new Date().toISOString();
       await commit(ids.map((id) => ({ type: "set", c: "feedback", id, data: { reflectedAt }, merge: true })));
+      break;
+    }
+    case "plans": {
+      const snap = await loadAll();
+      const list = pendingPlans(snap.plans, jstDate(), { all: flags.has("--all") });
+      if (flags.has("--json")) console.log(JSON.stringify(list, null, 1));
+      else if (!list.length) console.log(flags.has("--all") ? "今日以降の予定はありません" : "反映待ちの予定はありません");
+      else {
+        for (const p of list) console.log(formatPlan(p, snap));
+        console.log(`\n${list.length}件。組み直したら plans:done <id...> で反映済みにする`);
+      }
+      break;
+    }
+    case "plans:done": {
+      const snap = await loadAll();
+      const ids = flags.has("--pending") ? pendingPlans(snap.plans, jstDate()).map((p) => p.id) : rest;
+      if (!ids.length) fail(flags.has("--pending") ? "反映待ちの予定はありません" : "plans:done <id...> か --pending で指定してください");
+      const missing = ids.filter((id) => !snap.plans.some((p) => p.id === id));
+      if (missing.length) fail(`plans に見つかりません: ${missing.join(", ")}`);
+      const handledAt = new Date().toISOString();
+      await commit(
+        ids.map((id) =>
+          snap.plans.find((p) => p.id === id).canceled ? { type: "delete", c: "plans", id } : { type: "set", c: "plans", id, data: { handledAt }, merge: true },
+        ),
+      );
       break;
     }
     case "upsert": {

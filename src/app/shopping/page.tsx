@@ -6,8 +6,9 @@ import { useSearchParams } from "next/navigation";
 import clsx from "clsx";
 import { Check, ChevronLeft, ChevronRight, NotebookText, Pencil, Plus, ShoppingBasket, Snowflake, Trash } from "@/components/icons";
 import { Chips, Field, PrimaryButton, inputClass } from "@/components/Form";
+import { useImpact } from "@/components/Impact";
 import { PageHeader } from "@/components/PageHeader";
-import { Empty, LoadingCards, Progress, Segmented, Sheet } from "@/components/ui";
+import { Empty, LoadingCards, Pill, Progress, Segmented, Sheet } from "@/components/ui";
 import { useData } from "@/lib/data";
 import { CATEGORIES, categoryOptions } from "@/lib/categories";
 import { useNow } from "@/lib/now";
@@ -34,6 +35,8 @@ interface Trip {
 function Shopping() {
   const params = useSearchParams();
   const { ingredients, notes, purchases, status, setBought, removeIngredient } = useData();
+  // 外食・不在の予定で作らなくなった献立にしか使わない食材（組み直しは Claude が毎晩21時）
+  const dontBuy = new Set(useImpact().dontBuy.map((i) => i.id));
   const [hideDone, setHideDone] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [adding, setAdding] = useState(false);
@@ -235,6 +238,11 @@ function Shopping() {
                             {i.name}
                             {i.amount && <span className="ml-2 text-[13px] font-normal text-ink-3">{i.amount}</span>}
                           </span>
+                          {dontBuy.has(i.id) && !checked && (
+                            <Pill tone="night" className="mt-1">
+                              予定で使わなくなった物。買わなくてよさそう
+                            </Pill>
+                          )}
                           {i.memo && <span className="block text-[12px] leading-snug text-ink-3">{i.memo}</span>}
                         </span>
                         <span className="flex shrink-0 flex-col items-end gap-0.5">

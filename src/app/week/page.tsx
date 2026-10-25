@@ -3,16 +3,18 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import clsx from "clsx";
-import { CalendarDays, ChevronLeft, ChevronRight, Clock } from "@/components/icons";
+import { CalendarDays, CalendarEdit, ChevronLeft, ChevronRight, Clock } from "@/components/icons";
 import { MealRow, MealSheet } from "@/components/Meal";
+import { ImpactCard } from "@/components/Impact";
 import { PageHeader } from "@/components/PageHeader";
+import { PLAN_ICON, PlanSheet, type PlanPreset } from "@/components/Plan";
 import { Empty, LoadingCards } from "@/components/ui";
 import { useData } from "@/lib/data";
 import { useNow } from "@/lib/now";
-import { addDays, md, wd, weekDays, weekStart } from "@/lib/date";
+import { addDays, md, mdw, wd, weekDays, weekStart } from "@/lib/date";
 import { sum } from "@/lib/format";
 import { mealsOn } from "@/lib/meals";
-import { SLOTS, type Meal } from "@/lib/types";
+import { SLOTS, type Meal, type Plan } from "@/lib/types";
 
 const GENRE_COLOR: Record<string, string> = {
   和食: "bg-[#b07a4a]",
@@ -31,12 +33,13 @@ export default function WeekPage() {
 
 function Week() {
   const params = useSearchParams();
-  const { meals, status } = useData();
+  const { meals, plans, status } = useData();
   const { today } = useNow();
   const thisWeek = weekStart(today);
   const initial = params.get("w");
   const [start, setStart] = useState(initial && /^\d{4}-\d{2}-\d{2}$/.test(initial) ? weekStart(initial) : thisWeek);
   const [open, setOpen] = useState<Meal | null>(null);
+  const [planOpen, setPlanOpen] = useState<{ plan: Plan | null; preset: PlanPreset | null } | null>(null);
   const todayRef = useRef<HTMLElement>(null);
 
   const go = (s: string) => {
@@ -56,11 +59,17 @@ function Week() {
     return [...c.entries()].sort((a, b) => b[1] - a[1]);
   }, [weekMeals]);
   const genreTotal = sum(genres.map(([, n]) => n));
+  // 取り消し済み（献立を戻す待ち）も出して、やっぱり予定ありに戻せるようにする
+  const weekPlans = useMemo(
+    () => plans.filter((p) => p.date >= days[0] && p.date <= days[6]).sort((a, b) => a.date.localeCompare(b.date)),
+    [plans, days],
+  );
 
   // 献立がある週の範囲（前後の移動の上限に使う）
   const dated = meals.map((m) => m.date).filter((d): d is string => !!d).sort();
   const minWeek = dated.length ? weekStart(dated[0]) : thisWeek;
-  const maxWeek = dated.length ? weekStart(dated[dated.length - 1]) : thisWeek;
+  // 来週の予定は献立ができる前（日曜20時より前）に登録したいので、来週までは進める
+  const maxWeek = [dated.length ? weekStart(dated[dated.length - 1]) : thisWeek, addDays(thisWeek, 7), ...plans.map((p) => weekStart(p.date))].sort().pop()!;
 
   useEffect(() => {
     if (status === "ready" && start === thisWeek) todayRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
@@ -97,6 +106,15 @@ function Week() {
           >
             <ChevronRight className="size-5" />
           </button>
+          <button
+            type="button"
+            onClick={() => setPlanOpen({ plan: null, preset: { date: start > today ? start : today, slots: ["夕食"] } })}
+            disabled={days[6] < today}
+            className="tap flex h-10 items-center gap-1.5 rounded-full bg-surface px-3.5 text-[13px] font-medium shadow-card disabled:opacity-40"
+          >
+            <CalendarEdit className="size-[18px]" />
+            予定
+          </button>
           {weekMeals.length > 0 && (
             <span className="num ml-auto flex items-center gap-1 text-[13px] text-ink-3">
               <Clock className="size-4" />
@@ -121,16 +139,40 @@ function Week() {
             </p>
           </div>
         )}
+        {weekPlans.length > 0 && (
+          <ul className="mt-4 flex flex-wrap gap-2" aria-label="この週の外食・不在の予定">
+            {weekPlans.map((p) => {
+              const Icon = PLAN_ICON[p.kind];
+              return (
+                <li key={p.id}>
+                  <button
+                    type="button"
+                    onClick={() => setPlanOpen({ plan: p, preset: null })}
+                    className={clsx("tap flex items-center gap-1.5 rounded-full bg-night-soft px-3 py-1.5 text-[13px]", p.canceled && "opacity-60")}
+                  >
+                    <Icon className="size-4 text-night" />
+                    <span className="num">{mdw(p.date)}</span>
+                    <span className={clsx(p.canceled && "line-through")}>
+                      {SLOTS.filter((s) => p.slots.includes(s)).map((s) => s.slice(0, 1)).join("・")} {p.kind}
+                    </span>
+                    {(p.canceled || !p.handledAt) && <span className="text-[11px] text-ink-3">{p.canceled ? "取り消し" : "反映待ち"}</span>}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </PageHeader>
 
       {status === "loading" ? (
         <LoadingCards count={4} />
-      ) : weekMeals.length === 0 ? (
+      ) : weekMeals.length === 0 && weekPlans.length === 0 ? (
         <Empty icon={<CalendarDays className="size-6" />} title="この週の献立はありません">
-          毎週土曜の夕方に、Claude が翌週分を自動で作ります。
+          毎週日曜の20時に、Claude が翌週分を自動で作ります。外食や家にいない予定は、先に「予定」から登録してください。
         </Empty>
       ) : (
         <div className="grid gap-3 lg:grid-cols-2">
+          {days[6] >= today && <ImpactCard className="lg:col-span-2" />}
           {days.map((d, i) => {
             const list = mealsOn(meals, d);
             const isToday = d === today;
@@ -158,7 +200,7 @@ function Week() {
                 </header>
                 <div className="divide-y divide-line">
                   {SLOTS.map((s) => (
-                    <MealRow key={s} slot={s} meal={list.find((m) => m.slot === s)} onOpen={setOpen} />
+                    <MealRow key={s} slot={s} date={d} meal={list.find((m) => m.slot === s)} onOpen={setOpen} />
                   ))}
                 </div>
               </section>
@@ -168,6 +210,7 @@ function Week() {
       )}
 
       <MealSheet meal={open} onClose={() => setOpen(null)} />
+      <PlanSheet plan={planOpen?.plan ?? null} preset={planOpen?.preset ?? null} onClose={() => setPlanOpen(null)} />
     </>
   );
 }

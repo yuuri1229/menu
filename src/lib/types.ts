@@ -91,6 +91,25 @@ export interface Feedback {
   reflectedAt: string | null;
 }
 
+/** 外食・不在の予定。種類は scripts/schema.mjs・firestore.rules と同じにする */
+export const PLAN_KINDS = ["外食", "不在"] as const;
+export type PlanKind = (typeof PLAN_KINDS)[number];
+export const PLAN_MEMO_MAX = 200;
+
+export interface Plan {
+  id: string;
+  date: string;
+  slots: Slot[];
+  kind: PlanKind;
+  memo: string;
+  /** 献立に反映したあとで予定がなくなった（Claude が献立を戻してから消す） */
+  canceled: boolean;
+  uid: string | null;
+  updatedAt: string | null;
+  /** Claude が献立・食材・弁当を組み直した時刻（まだなら null） */
+  handledAt: string | null;
+}
+
 export interface RichText {
   t: string;
   b?: boolean;
@@ -134,4 +153,5 @@ export interface Snapshot {
   inventory: InventoryItem[];
   notes: Note[];
   feedback: Feedback[];
+  plans: Plan[];
 }
