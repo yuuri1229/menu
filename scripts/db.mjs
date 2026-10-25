@@ -74,7 +74,13 @@ if (cmd === "discord") {
     console.error("エラー: discord <タイトル> [本文] の形で指定してください");
     process.exit(1);
   }
-  const { sendDiscord } = await import("./discord.mjs");
+  const { sendDiscord, needsEnvProxy } = await import("./discord.mjs");
+  // Node の fetch は HTTPS_PROXY を見ないので、プロキシ越しの環境（クラウド環境など）では有効にして入れ直す
+  if (needsEnvProxy(process.env)) {
+    const { spawnSync } = await import("node:child_process");
+    const r = spawnSync(process.execPath, ["--no-warnings", ...process.argv.slice(1)], { stdio: "inherit", env: { ...process.env, NODE_USE_ENV_PROXY: "1" } });
+    process.exit(r.status ?? 1);
+  }
   try {
     const r = await sendDiscord(title, body, option("--url") ?? "");
     console.log(r === "sent" ? "Discord に送りました" : "DISCORD_WEBHOOK_URL が未設定のため Discord への報告をスキップしました");

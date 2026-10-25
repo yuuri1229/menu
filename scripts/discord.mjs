@@ -26,3 +26,9 @@ export async function sendDiscord(title, body = "", url = "", env = process.env,
   if (!res.ok) throw new Error(`Discord が ${res.status} を返しました`);
   return "sent";
 }
+
+/** HTTPS_PROXY があるのに Node がそれを使わない設定なら true（NODE_USE_ENV_PROXY=1 で入れ直す目印） */
+export function needsEnvProxy(env = process.env) {
+  const proxy = env.HTTPS_PROXY || env.https_proxy;
+  return Boolean(proxy) && !env.NODE_USE_ENV_PROXY;
+}

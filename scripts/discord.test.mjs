@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { buildDiscordPayload, sendDiscord } from "./discord.mjs";
+import { buildDiscordPayload, needsEnvProxy, sendDiscord } from "./discord.mjs";
 
 test("タイトルと本文を embed にする", () => {
   const p = buildDiscordPayload("来週の献立ができました", "買い物① は 10/26(月)", "https://example.com/week/");
@@ -28,4 +28,11 @@ test("設定されていれば POST し、失敗時の例外に URL を含めな
   assert.equal(seen.init.method, "POST");
   const ng = async () => ({ ok: false, status: 404 });
   await assert.rejects(sendDiscord("t", "", "", { DISCORD_WEBHOOK_URL: secret }, ng), (e) => !e.message.includes("SECRET"));
+});
+
+test("プロキシ環境では環境変数のプロキシを使う設定に入れ直す", () => {
+  assert.equal(needsEnvProxy({ HTTPS_PROXY: "http://proxy:8080" }), true);
+  assert.equal(needsEnvProxy({ https_proxy: "http://proxy:8080" }), true);
+  assert.equal(needsEnvProxy({ HTTPS_PROXY: "http://proxy:8080", NODE_USE_ENV_PROXY: "1" }), false);
+  assert.equal(needsEnvProxy({}), false);
 });
