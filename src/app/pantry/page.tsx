@@ -366,6 +366,8 @@ function StockForm({ item, onClose }: { item: InventoryItem | null; onClose: () 
           <textarea value={memo} onChange={(e) => setMemo(e.target.value)} maxLength={300} rows={2} placeholder="例：半分は冷凍済み" className={inputClass} />
         </Field>
 
+        {item && <StatusOrDelete />}
+
         {item && (
           <button
             type="button"
@@ -382,5 +384,45 @@ function StockForm({ item, onClose }: { item: InventoryItem | null; onClose: () 
         )}
       </div>
     </Sheet>
+  );
+}
+
+/** 「切れた」にするか、削除するかの使い分け（迷ったら切れた） */
+const STATUS_OR_DELETE: [label: string, when: string, examples: string, then: string][] = [
+  ["切れた", "使い切ったが、また買う", "醤油・卵・米・千切りキャベツ・ラップ", "一覧に残り、Claude が買い物リストに入れる。使う献立を直す"],
+  ["削除", "もう買う予定がない", "1つのレシピ用に買って使い切った物・お試しで合わなかった物・間違えた登録", "記録ごと消える。買い足しも献立の警告も出ない"],
+];
+
+function StatusOrDelete() {
+  return (
+    <section aria-label="切れたと削除の使い分け" className="overflow-hidden rounded-2xl border border-line">
+      <h3 className="bg-surface-2 px-3.5 py-2.5 text-[13px] font-bold text-ink-2">「切れた」と「削除」の使い分け</h3>
+      <table className="w-full text-left text-[13px] leading-snug">
+        <thead className="text-[12px] text-ink-3">
+          <tr className="border-t border-line">
+            <th scope="col" className="w-16 px-3.5 py-2 font-medium"></th>
+            <th scope="col" className="px-2 py-2 font-medium">こんなとき</th>
+            <th scope="col" className="px-3.5 py-2 font-medium">どうなるか</th>
+          </tr>
+        </thead>
+        <tbody>
+          {STATUS_OR_DELETE.map(([label, when, examples, then]) => (
+            <tr key={label} className="border-t border-line align-top">
+              <th scope="row" className="px-3.5 py-2.5">
+                <Pill tone={label === "切れた" ? "danger" : "neutral"}>{label}</Pill>
+              </th>
+              <td className="px-2 py-2.5">
+                <span className="block font-medium">{when}</span>
+                <span className="mt-0.5 block text-[12px] text-ink-3">例：{examples}</span>
+              </td>
+              <td className="px-3.5 py-2.5 text-ink-2">{then}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p className="border-t border-line px-3.5 py-2.5 text-[12px] leading-snug text-ink-3">
+        迷ったら「切れた」に。魚介の確認（問題なし・NG）も在庫の記録に付くので、また使うかもしれない加工品は残しておくと安心です。
+      </p>
+    </section>
   );
 }
