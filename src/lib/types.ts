@@ -98,8 +98,14 @@ export const PLAN_MEMO_MAX = 200;
 
 export interface Plan {
   id: string;
+  /** 1日だけの予定はその日、数日の予定は出発日 */
   date: string;
+  /** date の日に食べない食事 */
   slots: Slot[];
+  /** 数日家を空けるときの帰宅日（1日だけなら null）。間の日は全部の食事を食べない */
+  endDate: string | null;
+  /** 帰宅日に食べない食事 */
+  endSlots: Slot[];
   kind: PlanKind;
   memo: string;
   /** 献立に反映したあとで予定がなくなった（Claude が献立を戻してから消す） */

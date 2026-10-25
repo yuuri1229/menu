@@ -33,7 +33,7 @@ node scripts/db.mjs help
 | `purchases` | `name` `amount`（税込） `store` `trip` `tripDate` `category`（食材/調味料・消耗品） `date` `carryOver` `memo` `receiptNo` `ingredientIds` | 米は `category: "食材"` で記録し、名前に米の銘柄を入れる（週予算から自動で除く） |
 | `inventory` | `name` `category` `storage` `status`（十分/残りわずか/切れた/要確認） `remaining` `memo` `seafood`（問題なし/要確認/NG） `bestBefore` `purchasedAt` | |
 | `notes` | `title` `icon` `kind`（week/rules/page） `start` `end` `markdown` `editedAt` | 週のメモは id を `week-YYYY-MM-DD`（月曜の日付）、`kind: "week"`。食材のレシピ候補などは `kind: "page"`。好みの記録は id `preferences`、`kind: "page"`。本文は Markdown（見出し・箇条書き・`- [ ]`・表） |
-| `plans` | `date` `slots`（朝食/昼食/夕食の配列） `kind`（外食/不在） `memo` `canceled` `uid` `updatedAt` `handledAt` | アプリの献立タブで登録する外食・家にいない予定。Claude は書き換えず、献立を組み直したら `plans:done` で `handledAt` を付けるだけ（取り消し `canceled: true` の予定は `plans:done` で消える）。書き直されると `handledAt` が空に戻る |
+| `plans` | `date` `slots`（朝食/昼食/夕食の配列） `endDate` `endSlots` `kind`（外食/不在） `memo` `canceled` `uid` `updatedAt` `handledAt` | アプリの献立タブで登録する外食・家にいない予定。数日家を空けるときは `endDate`（帰宅日）を付け、`date` の日は `slots`、`endDate` の日は `endSlots`、その間の日は3食とも家で食べない（例：11/5 昼食・夕食〜11/7 朝食・昼食 なら 11/5 朝と 11/7 夜は家で食べる）。Claude は書き換えず、献立を組み直したら `plans:done` で `handledAt` を付けるだけ（取り消し `canceled: true` の予定は `plans:done` で消える）。書き直されると `handledAt` が空に戻る |
 | `feedback` | `mealId` `mealTitle` `date` `slot` `verdict`（好み/ふつう/合わない） `tags` `text` `uid` `updatedAt` `reflectedAt` | アプリの献立シートから届く感想。id は献立の id（1献立1件、送り直すと上書きされ `reflectedAt` が空に戻る）。Claude は書き換えず、まとめたら `feedback:done` で `reflectedAt` を付けるだけ |
 
 新しい文書は `id` を付けずに渡すと CLI が作り、作った id を表示します。既存の文書は `id` と変える項目だけ渡せば部分更新になります。
@@ -73,7 +73,8 @@ node scripts/db.mjs help
 2. まだ献立が無い週の予定：その食事は作らず、その分の食材を買わない。夕食が外食・不在で翌日が弁当の日なら、翌日の弁当は取り分けに頼らず朝にレンジで作れるもの（おにぎり・卵焼き・ちくわなど在庫中心）にする。丸一日いない日の前後は、傷みやすい物（もやし・千切りキャベツ・肉）を買う日をずらす。外食の代金は食費の予算に入れない。
 3. もう献立がある食事（急な予定）：その献立は消さずに、食材を使う先の食事へ移す（`date`・`slot` を空いている先の食事に変える、または先の献立を置き換える）。肉は冷凍して後で使う、傷みやすい物から先に使う。まだ買っていない食材は量を減らすか買うのをやめる（名前に「（取りやめ）」を付ける）。翌日の弁当も直す。変えた献立の `memo` に「10/27変更：外食のため…」と書く。
 4. 取り消された予定（予定がなくなった）：その食事の献立を戻す。移した献立があれば元に戻し、無ければ在庫（卵・納豆・冷凍うどん・ツナ缶など）で作れる簡単な献立を足し、足りない物は次の買い物回に足す。
-5. `node scripts/db.mjs plans:done <id...>` で反映済みにし（取り消しは文書が消える）、今週分を変えたときは `notify` で「予定に合わせて献立を組み直しました」と知らせる。週ノートの補足に、予定と変えた所を一言書く。
+5. 数日家を空ける予定（`endDate` あり）：留守の日は献立を作らず、買い物回も入れない（留守中に当たる回は出発前か帰宅後にずらす）。出発前の食事で傷みやすい物（もやし・葉物・肉・豆腐）を使い切り、使い切れない肉は冷凍する。出発の日は家で食べる最後の食事まで、帰宅の日は家で食べる最初の食事から献立を組み、帰宅日の食事は買い物に頼らず日持ちする在庫（冷凍うどん・卵・ツナ缶・冷凍ごはんなど）で作れる物にする。帰宅後の最初の買い物回は帰宅日の翌日以降にする。
+6. `node scripts/db.mjs plans:done <id...>` で反映済みにし（取り消しは文書が消える）、今週分を変えたときは `notify` で「予定に合わせて献立を組み直しました」と知らせる。週ノートの補足に、予定と変えた所を一言書く。
 
 **予定と在庫の確認（7時・12時・21時）**
 アプリは予定と在庫の変更から「買わなくてよさそうな物」「使う先がなくなった物」「材料が切れている献立」をその場で表示する（`src/lib/impact.ts`、決まりで計算した目安）。

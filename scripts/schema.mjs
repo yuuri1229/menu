@@ -96,10 +96,13 @@ export const SCHEMA = {
     reflectedAt: "string?",
   },
   // 外食・不在の予定。アプリが書き、Claude は献立・食材・弁当を組み直したら handledAt を付ける。
+  // 数日家を空けるときは endDate（帰宅日）を付け、date の slots・間の日の全食事・endDate の endSlots を食べない
   // 予定がなくなったときは、反映前なら文書ごと消え、反映後は canceled=true（Claude が献立を戻してから消す）
   plans: {
     date: "date?",
     slots: { many: SLOT },
+    endDate: "date?",
+    endSlots: { many: SLOT },
     kind: PLAN_KINDS,
     memo: "string",
     canceled: "bool",
@@ -121,7 +124,7 @@ export const MEMBER_WRITABLE = {
   // 感想は文書ごと書く（reflectedAt は空に戻すことだけできる）
   feedback: ["mealId", "mealTitle", "date", "slot", "verdict", "tags", "text", "uid", "updatedAt", "reflectedAt"],
   // 予定は文書ごと書く（handledAt は空に戻すことだけできる）。反映前の予定は消せる
-  plans: ["date", "slots", "kind", "memo", "canceled", "uid", "updatedAt", "handledAt"],
+  plans: ["date", "slots", "endDate", "endSlots", "kind", "memo", "canceled", "uid", "updatedAt", "handledAt"],
 };
 
 /** 感想の本文の上限（firestore.rules と同じ） */
@@ -182,6 +185,8 @@ export function validate(collection, data, { partial = false } = {}) {
     const required = { meals: "title", ingredients: "name", purchases: "name", inventory: "name", notes: "title", feedback: "mealId", plans: "date" }[collection];
     if (!out[required]) errors.push(`${required}: 空にできない`);
     if (collection === "plans" && !out.slots.length) errors.push("slots: 朝食・昼食・夕食から1つ以上選ぶ");
+    if (collection === "plans" && out.endDate && !(out.endDate > out.date)) errors.push("endDate: date より後の日にする");
+    if (collection === "plans" && out.endDate && !out.endSlots.length) errors.push("endSlots: 帰宅日に食べない食事を1つ以上選ぶ");
   }
   if (errors.length) throw new Error(`${collection}${data.id ? `/${data.id}` : ""}: ${errors.join("; ")}`);
   return out;

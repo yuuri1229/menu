@@ -1,6 +1,7 @@
 // 外食・不在の予定や在庫の「切れた」が、次の買い物までの献立と食材にどう響くかを、アプリの中ですぐ計算する。
 // 献立そのものを組み直すのは Claude（毎日7時・12時・21時）。ここは決まりだけで判断して、画面に目安を出す。
 
+import { planCovers } from "./plans.ts";
 import type { Ingredient, InventoryItem, Meal, Plan } from "./types";
 
 export interface UseUp {
@@ -70,7 +71,7 @@ export function computeImpact(
   today: string,
 ): Impact {
   const active = plans.filter((p) => !p.canceled);
-  const covered = (m: Meal) => !!m.date && !!m.slot && active.some((p) => p.date === m.date && p.slots.includes(m.slot!));
+  const covered = (m: Meal) => !!m.date && !!m.slot && active.some((p) => planCovers(p, m.date!, m.slot!));
   const ahead = meals.filter((m) => m.date && m.date >= today && !m.done);
   const skipped = ahead.filter(covered);
   const skippedIds = new Set(skipped.map((m) => m.id));
