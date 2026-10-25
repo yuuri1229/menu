@@ -40,3 +40,13 @@ test("感想は選択肢とタグを決め打ちで検査する", () => {
   assert.throws(() => validate("feedback", { mealId: "m1", verdict: "好み", tags: ["辛い"] }), /tags/);
   assert.throws(() => validate("feedback", { verdict: "好み" }), /mealId: 空にできない/);
 });
+
+test("予定は日付と食事が必要で、種類は外食か不在", () => {
+  const d = validate("plans", { date: "2026-10-27", slots: ["夕食"], kind: "外食" });
+  assert.equal(d.canceled, false);
+  assert.equal(d.handledAt, null);
+  assert.throws(() => validate("plans", { date: "2026-10-27", slots: [], kind: "外食" }), /slots/);
+  assert.throws(() => validate("plans", { date: "2026-10-27", slots: ["おやつ"], kind: "外食" }), /slots/);
+  assert.throws(() => validate("plans", { date: "2026-10-27", slots: ["夕食"], kind: "旅行" }), /kind/);
+  assert.throws(() => validate("plans", { slots: ["夕食"], kind: "外食" }), /date: 空にできない/);
+});

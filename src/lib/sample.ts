@@ -245,5 +245,8 @@ export function sampleSnapshot(): Snapshot {
       { id: "n-rules", title: "前提条件・調理環境・買い物計画", icon: null, kind: "rules", start: null, end: null, markdown: rules, blocks: [], editedAt: null },
     ],
     feedback: [],
+    plans: [
+      { id: "pl-1", date: addDays(mon, 3), slots: ["夕食"], kind: "外食", memo: "会社の飲み会", canceled: false, uid: "demo", updatedAt: null, handledAt: null },
+    ],
   };
 }

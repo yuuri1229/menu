@@ -7,6 +7,8 @@ const SEAFOOD = ["問題なし", "要確認", "NG"];
 const NOTE_KIND = ["week", "rules", "page"];
 /** 献立の感想。アプリの献立シートで選ぶ（src/lib/types.ts・firestore.rules と同じにする） */
 export const VERDICTS = ["好み", "ふつう", "合わない"];
+/** 外食・不在の予定の種類（src/lib/types.ts・firestore.rules と同じにする） */
+export const PLAN_KINDS = ["外食", "不在"];
 export const FEEDBACK_TAGS = ["味が濃い", "味が薄い", "量が多い", "量が少ない", "手間だった", "また食べたい", "苦手な食材"];
 
 /**
@@ -93,6 +95,18 @@ export const SCHEMA = {
     updatedAt: "string?",
     reflectedAt: "string?",
   },
+  // 外食・不在の予定。アプリが書き、Claude は献立・食材・弁当を組み直したら handledAt を付ける。
+  // 予定がなくなったときは、反映前なら文書ごと消え、反映後は canceled=true（Claude が献立を戻してから消す）
+  plans: {
+    date: "date?",
+    slots: { many: SLOT },
+    kind: PLAN_KINDS,
+    memo: "string",
+    canceled: "bool",
+    uid: "string?",
+    updatedAt: "string?",
+    handledAt: "string?",
+  },
 };
 
 export const COLLECTIONS = Object.keys(SCHEMA);
@@ -106,6 +120,8 @@ export const MEMBER_WRITABLE = {
   inventory: ["name", "category", "storage", "status", "remaining", "memo", "bestBefore", "purchasedAt"],
   // 感想は文書ごと書く（reflectedAt は空に戻すことだけできる）
   feedback: ["mealId", "mealTitle", "date", "slot", "verdict", "tags", "text", "uid", "updatedAt", "reflectedAt"],
+  // 予定は文書ごと書く（handledAt は空に戻すことだけできる）。反映前の予定は消せる
+  plans: ["date", "slots", "kind", "memo", "canceled", "uid", "updatedAt", "handledAt"],
 };
 
 /** 感想の本文の上限（firestore.rules と同じ） */
@@ -163,8 +179,9 @@ export function validate(collection, data, { partial = false } = {}) {
   }
   if (!partial) {
     for (const [k, type] of Object.entries(fields)) if (!(k in out)) out[k] = defaultFor(type);
-    const required = { meals: "title", ingredients: "name", purchases: "name", inventory: "name", notes: "title", feedback: "mealId" }[collection];
+    const required = { meals: "title", ingredients: "name", purchases: "name", inventory: "name", notes: "title", feedback: "mealId", plans: "date" }[collection];
     if (!out[required]) errors.push(`${required}: 空にできない`);
+    if (collection === "plans" && !out.slots.length) errors.push("slots: 朝食・昼食・夕食から1つ以上選ぶ");
   }
   if (errors.length) throw new Error(`${collection}${data.id ? `/${data.id}` : ""}: ${errors.join("; ")}`);
   return out;

@@ -24,7 +24,7 @@ function greeting(hour: number) {
 }
 
 export default function TodayPage() {
-  const { meals, ingredients, inventory, purchases, status } = useData();
+  const { meals, ingredients, inventory, purchases, status, planAt } = useData();
   const [open, setOpen] = useState<Meal | null>(null);
 
   const { today, hour } = useNow();
@@ -47,8 +47,9 @@ export default function TodayPage() {
       ...todayMeals.filter((m) => m.slot && SLOTS.indexOf(m.slot) >= idx && !late),
       ...tomorrowMeals.filter((m) => m.slot !== "夕食"),
     ];
-    return upcoming.flatMap((m) => prepTips(m.memo).map((text) => ({ meal: m, text })));
-  }, [todayMeals, tomorrowMeals, hour, late]);
+    // 外食・不在の食事の段取りは出さない
+    return upcoming.filter((m) => !planAt(m.date, m.slot)).flatMap((m) => prepTips(m.memo).map((text) => ({ meal: m, text })));
+  }, [todayMeals, tomorrowMeals, hour, late, planAt]);
 
   const nextTrip = useMemo(() => {
     const upcoming = ingredients.filter((i) => i.tripDate && i.tripDate >= today && i.trip);
@@ -74,7 +75,7 @@ export default function TodayPage() {
       ) : (
         <div className="space-y-3">
           <div className="rise">
-            <MealHero meal={heroMeal} slot={heroSlot} onOpen={setOpen} label={heroLabel} />
+            <MealHero meal={heroMeal} slot={heroSlot} date={late ? tomorrow : today} onOpen={setOpen} label={heroLabel} />
           </div>
 
           {tips.length > 0 && (
@@ -109,7 +110,7 @@ export default function TodayPage() {
           <SectionTitle action={<Link href="/week" className="text-[13px] text-accent-text">1週間を見る</Link>}>今日の献立</SectionTitle>
           <div className="card divide-y divide-line overflow-hidden">
             {SLOTS.map((s) => (
-              <MealRow key={s} slot={s} meal={bySlot(todayMeals, s)} onOpen={setOpen} />
+              <MealRow key={s} slot={s} date={today} meal={bySlot(todayMeals, s)} onOpen={setOpen} />
             ))}
           </div>
 
@@ -184,7 +185,7 @@ export default function TodayPage() {
           <SectionTitle>明日の献立</SectionTitle>
           <div className="card divide-y divide-line overflow-hidden">
             {SLOTS.map((s) => (
-              <MealRow key={s} slot={s} meal={bySlot(tomorrowMeals, s)} onOpen={setOpen} compact />
+              <MealRow key={s} slot={s} date={tomorrow} meal={bySlot(tomorrowMeals, s)} onOpen={setOpen} compact />
             ))}
           </div>
         </>

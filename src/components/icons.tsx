@@ -49,6 +49,10 @@ import {
   MdOutlineWarningAmber,
   MdOutlineDescription,
   MdOutlineLunchDining,
+  MdOutlineRestaurant,
+  MdOutlineEventBusy,
+  MdOutlineEditCalendar,
+  MdOutlineUndo,
 } from "react-icons/md";
 
 /**
@@ -113,3 +117,7 @@ export const Wallet = material(MdOutlineAccountBalanceWallet, "Wallet");
 export const X = material(MdOutlineClose, "X");
 export const Bento = material(MdOutlineLunchDining, "Bento");
 
+export const EatingOut = material(MdOutlineRestaurant, "EatingOut");
+export const Away = material(MdOutlineEventBusy, "Away");
+export const CalendarEdit = material(MdOutlineEditCalendar, "CalendarEdit");
+export const Undo = material(MdOutlineUndo, "Undo");

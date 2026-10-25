@@ -1,8 +1,8 @@
 # こんだて帖を扱う Claude へ
 
-献立・食材（買い物リスト）・買い物明細・家の在庫・ノート・献立の感想は **Firestore だけ** に置いています（Notion は使っていません）。
+献立・食材（買い物リスト）・買い物明細・家の在庫・ノート・献立の感想・外食や不在の予定は **Firestore だけ** に置いています（Notion は使っていません）。
 アプリ（https://yuuri1229.github.io/menu/ ）は同じデータをリアルタイムで表示するので、Claude が書けばすぐ画面に出て、
-アプリで押された「作った」「買った」「在庫の状態」と、献立シートから送られた感想は Claude が次に読んだときに見えます。
+アプリで押された「作った」「買った」「在庫の状態」と、献立シートから送られた感想、献立タブで登録された予定は Claude が次に読んだときに見えます。
 
 ## 準備
 
@@ -19,7 +19,7 @@ node scripts/db.mjs help
 ## いつも守ること
 
 - 作業の前に `node scripts/db.mjs get notes rules` で前提条件（アレルギー・NG食材・調理環境・予算・店）を読む。これが一番の決まり。
-- 献立を考えるときは、その次に `node scripts/db.mjs get notes preferences`（好みの記録）と `node scripts/db.mjs feedback`（反映待ちの感想）も読む。
+- 献立を考えるときは、その次に `node scripts/db.mjs get notes preferences`（好みの記録）と `node scripts/db.mjs feedback`（反映待ちの感想）、`node scripts/db.mjs plans`（外食・不在の予定）も読む。
 - 書き出したデータや作業用の JSON はリポジトリに置かない（公開リポジトリのため）。スクラッチや共有フォルダに置く。
 - 書き込みは `upsert` に JSON を渡す。まず `--dry-run` で確かめてから本番。形が違えば CLI が日本語で止める。
 - 献立や明細が指す食材を消さない（CLI が参照切れを止める）。
@@ -33,6 +33,7 @@ node scripts/db.mjs help
 | `purchases` | `name` `amount`（税込） `store` `trip` `tripDate` `category`（食材/調味料・消耗品） `date` `carryOver` `memo` `receiptNo` `ingredientIds` | 米は `category: "食材"` で記録し、名前に米の銘柄を入れる（週予算から自動で除く） |
 | `inventory` | `name` `category` `storage` `status`（十分/残りわずか/切れた/要確認） `remaining` `memo` `seafood`（問題なし/要確認/NG） `bestBefore` `purchasedAt` | |
 | `notes` | `title` `icon` `kind`（week/rules/page） `start` `end` `markdown` `editedAt` | 週のメモは id を `week-YYYY-MM-DD`（月曜の日付）、`kind: "week"`。食材のレシピ候補などは `kind: "page"`。好みの記録は id `preferences`、`kind: "page"`。本文は Markdown（見出し・箇条書き・`- [ ]`・表） |
+| `plans` | `date` `slots`（朝食/昼食/夕食の配列） `kind`（外食/不在） `memo` `canceled` `uid` `updatedAt` `handledAt` | アプリの献立タブで登録する外食・家にいない予定。Claude は書き換えず、献立を組み直したら `plans:done` で `handledAt` を付けるだけ（取り消し `canceled: true` の予定は `plans:done` で消える）。書き直されると `handledAt` が空に戻る |
 | `feedback` | `mealId` `mealTitle` `date` `slot` `verdict`（好み/ふつう/合わない） `tags` `text` `uid` `updatedAt` `reflectedAt` | アプリの献立シートから届く感想。id は献立の id（1献立1件、送り直すと上書きされ `reflectedAt` が空に戻る）。Claude は書き換えず、まとめたら `feedback:done` で `reflectedAt` を付けるだけ |
 
 新しい文書は `id` を付けずに渡すと CLI が作り、作った id を表示します。既存の文書は `id` と変える項目だけ渡せば部分更新になります。
@@ -66,6 +67,13 @@ node scripts/db.mjs help
 3. タグ「苦手な食材」や本文で苦手とはっきり書かれた食材は `notes/rules` の NG に足し、以後使わない。味付けや量の不満は好みの記録で調整し、1回の「合わない」だけで NG にしない。
 4. `node scripts/db.mjs feedback:done <id...>` で反映済みにする。翌週の献立で直した所は献立の `memo` と週ノートの「感想の反映」節に書く。
 5. 体調の異変（かゆみ・腫れなど）を思わせる感想があれば、献立より先にユーザーに確認する。
+
+**外食・不在の予定を反映する（日曜の献立づくりの中、毎晩21時の確認、または「予定に合わせて組み直して」）**
+1. `node scripts/db.mjs plans` で反映待ちの予定を読む（その日の献立と「← 予定の食事」が出る）。
+2. まだ献立が無い週の予定：その食事は作らず、その分の食材を買わない。夕食が外食・不在で翌日が弁当の日なら、翌日の弁当は取り分けに頼らず朝にレンジで作れるもの（おにぎり・卵焼き・ちくわなど在庫中心）にする。丸一日いない日の前後は、傷みやすい物（もやし・千切りキャベツ・肉）を買う日をずらす。外食の代金は食費の予算に入れない。
+3. もう献立がある食事（急な予定）：その献立は消さずに、食材を使う先の食事へ移す（`date`・`slot` を空いている先の食事に変える、または先の献立を置き換える）。肉は冷凍して後で使う、傷みやすい物から先に使う。まだ買っていない食材は量を減らすか買うのをやめる（名前に「（取りやめ）」を付ける）。翌日の弁当も直す。変えた献立の `memo` に「10/27変更：外食のため…」と書く。
+4. 取り消された予定（予定がなくなった）：その食事の献立を戻す。移した献立があれば元に戻し、無ければ在庫（卵・納豆・冷凍うどん・ツナ缶など）で作れる簡単な献立を足し、足りない物は次の買い物回に足す。
+5. `node scripts/db.mjs plans:done <id...>` で反映済みにし（取り消しは文書が消える）、今週分を変えたときは `notify` で「予定に合わせて献立を組み直しました」と知らせる。週ノートの補足に、予定と変えた所を一言書く。
 
 **「○○が切れた」「○○は食べられた」などの連絡**
 在庫は `status` を変える。食べた結果は該当する献立の `memo` に【実績】として足し、ルールが変わるなら `notes/rules` の本文も直す。

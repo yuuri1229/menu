@@ -2,7 +2,7 @@ rules_version = '2';
 
 // こんだて帖のデータは、members に登録されたアカウントだけが読める。
 // アプリから書き換えられるのは「作った」「買った」、在庫（登録と、名前・数量・期限などの編集）、買い物リストへの追加と削除、
-// 献立の感想、通知を受け取る自分の端末の登録だけ。
+// 献立の感想、外食・不在の予定、通知を受け取る自分の端末の登録だけ。
 // それ以外（献立づくり・レシートの記録など）は Claude が scripts/db.mjs で書く
 // （サービスアカウントはこのルールの対象外）。
 // 変更したら scripts/schema.mjs の MEMBER_WRITABLE も合わせ、`node scripts/db.mjs rules:deploy` で反映する。
@@ -81,6 +81,29 @@ service cloud.firestore {
       }
       allow read: if isMember();
       allow create, update: if isMember() && validFeedback();
+    }
+
+    // 外食・不在の予定。項目と選択肢は scripts/schema.mjs と同じ。handledAt（献立に反映した時刻）は Claude が付け、
+    // アプリは書き直すときに空へ戻すだけ。反映前の予定は消せる。反映後に予定がなくなったら canceled を true にして
+    // Claude に献立を戻してもらう（戻したら Claude が消す）
+    match /plans/{id} {
+      function validPlan() {
+        let d = request.resource.data;
+        return d.keys().hasOnly(['date', 'slots', 'kind', 'memo', 'canceled', 'uid', 'updatedAt', 'handledAt'])
+          && d.date is string && d.date.matches('[0-9]{4}-[0-9]{2}-[0-9]{2}')
+          && d.slots is list && d.slots.size() >= 1 && d.slots.size() <= 3
+          && d.slots.hasOnly(['朝食', '昼食', '夕食'])
+          && d.kind in ['外食', '不在']
+          && d.memo is string && d.memo.size() <= 200
+          && d.canceled is bool
+          && d.uid == request.auth.uid
+          && d.updatedAt is string
+          && d.handledAt == null;
+      }
+      allow read: if isMember();
+      allow create: if isMember() && validPlan() && request.resource.data.canceled == false;
+      allow update: if isMember() && validPlan();
+      allow delete: if isMember() && resource.data.handledAt == null && resource.data.canceled == false;
     }
 
     function optStr(d, k) {

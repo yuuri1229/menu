@@ -6,7 +6,7 @@ import { DEMO } from "./config";
 import { getDb, getFirebaseAuth } from "./firebase";
 import { parseMarkdown } from "./markdown";
 import { sampleSnapshot } from "./sample";
-import type { Feedback, FeedbackTag, Ingredient, InventoryItem, Meal, Note, Purchase, Snapshot, StockStatus, Verdict } from "./types";
+import type { Feedback, FeedbackTag, Ingredient, InventoryItem, Meal, Note, Plan, Purchase, Slot, Snapshot, StockStatus, Verdict } from "./types";
 
 type Status = "loading" | "ready" | "error";
 
@@ -31,7 +31,15 @@ interface DataApi extends Snapshot {
   /** 献立の id → その献立への感想 */
   feedbackByMeal: Map<string, Feedback>;
   sendFeedback: (meal: Meal, input: { verdict: Verdict; tags: FeedbackTag[]; text: string }) => void;
+  /** その日のその食事の外食・不在の予定（取り消し済みは除く） */
+  planAt: (date: string | null, slot: Slot | null) => Plan | null;
+  /** 予定を登録（id なし）または書き直す。Claude にもう一度組み直してもらうため反映済みの印は外す */
+  savePlan: (id: string | null, fields: PlanFields) => void;
+  /** 予定がなくなった。献立にまだ反映していなければ消し、反映済みなら取り消しとして Claude に献立を戻してもらう */
+  cancelPlan: (plan: Plan) => void;
 }
+
+export type PlanFields = Pick<Plan, "date" | "slots" | "kind" | "memo">;
 
 /** アプリから書ける在庫の項目（魚介の確認 seafood は Claude が付ける） */
 export type InventoryFields = Pick<InventoryItem, "name" | "category" | "storage" | "status" | "remaining" | "memo" | "bestBefore" | "purchasedAt">;
@@ -39,11 +47,11 @@ export type IngredientFields = Omit<Ingredient, "id" | "actual" | "mealIds">;
 
 const DataContext = createContext<DataApi | null>(null);
 
-const COLLECTIONS = ["meals", "ingredients", "purchases", "inventory", "notes", "feedback"] as const;
+const COLLECTIONS = ["meals", "ingredients", "purchases", "inventory", "notes", "feedback", "plans"] as const;
 type Name = (typeof COLLECTIONS)[number];
 type Raw = { syncedAt: string | null } & Record<Name, Record<string, unknown>[]>;
 
-const EMPTY: Raw = { syncedAt: null, meals: [], ingredients: [], purchases: [], inventory: [], notes: [], feedback: [] };
+const EMPTY: Raw = { syncedAt: null, meals: [], ingredients: [], purchases: [], inventory: [], notes: [], feedback: [], plans: [] };
 
 /** 保存されていない項目（食材の実績金額・使う献立、ノートの表示用ブロック）を計算して足す */
 function derive(raw: Raw): Snapshot {
@@ -66,6 +74,7 @@ function derive(raw: Raw): Snapshot {
     })),
     notes: (raw.notes as unknown as Note[]).map((n) => ({ ...n, blocks: parseMarkdown(n.markdown ?? "") })),
     feedback: raw.feedback as unknown as Feedback[],
+    plans: raw.plans as unknown as Plan[],
   };
 }
 
@@ -95,8 +104,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
           setRaw((s) => ({ ...s, [name]: qs.docs.map((d) => ({ ...d.data(), id: d.id })) }));
           setLoaded((l) => new Set(l).add(name));
         },
-        // 感想が読めなくても（ルールの反映前など）献立や買い物は使えるようにする
-        name === "feedback" ? () => setLoaded((l) => new Set(l).add(name)) : onError,
+        // 感想や予定が読めなくても（ルールの反映前など）献立や買い物は使えるようにする
+        name === "feedback" || name === "plans" ? () => setLoaded((l) => new Set(l).add(name)) : onError,
       ),
     );
     unsubs.push(
@@ -199,6 +208,40 @@ export function DataProvider({ children }: { children: ReactNode }) {
     );
   }, []);
 
+  const savePlan = useCallback<DataApi["savePlan"]>((id, fields) => {
+    const data: Omit<Plan, "id"> = {
+      ...fields,
+      memo: fields.memo.trim(),
+      canceled: false,
+      uid: DEMO ? "demo" : (getFirebaseAuth().currentUser?.uid ?? null),
+      updatedAt: new Date().toISOString(),
+      handledAt: null,
+    };
+    if (DEMO) {
+      setRaw((s) => ({ ...s, plans: [...s.plans.filter((p) => p.id !== id), { ...data, id: id ?? `demo-${Date.now()}` }] }));
+      return;
+    }
+    const db = getDb();
+    (id ? setDoc(doc(db, "plans", id), data) : addDoc(collection(db, "plans"), data)).catch(onWriteError("予定"));
+  }, [onWriteError]);
+
+  const cancelPlan = useCallback<DataApi["cancelPlan"]>((plan) => {
+    const remove = !plan.handledAt && !plan.canceled;
+    if (DEMO) {
+      setRaw((s) => ({
+        ...s,
+        plans: remove ? s.plans.filter((p) => p.id !== plan.id) : s.plans.map((p) => (p.id === plan.id ? { ...p, canceled: true, handledAt: null } : p)),
+      }));
+      return;
+    }
+    const ref = doc(getDb(), "plans", plan.id);
+    const { id: _id, ...rest } = plan;
+    (remove
+      ? deleteDoc(ref)
+      : setDoc(ref, { ...rest, canceled: true, uid: getFirebaseAuth().currentUser?.uid ?? null, updatedAt: new Date().toISOString(), handledAt: null })
+    ).catch(onWriteError("予定"));
+  }, [onWriteError]);
+
   const value = useMemo<DataApi>(() => {
     const snap = derive(raw);
     const status: Status = error ? "error" : DEMO || loaded.size === COLLECTIONS.length ? "ready" : "loading";
@@ -220,8 +263,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
       addIngredient,
       removeIngredient,
       sendFeedback,
+      planAt: (date, slot) => (date && slot ? (snap.plans.find((p) => !p.canceled && p.date === date && p.slots?.includes(slot)) ?? null) : null),
+      savePlan,
+      cancelPlan,
     };
-  }, [raw, loaded, error, writeError, write, sendFeedback, saveInventory, removeInventory, addIngredient, removeIngredient]);
+  }, [raw, loaded, error, writeError, write, sendFeedback, saveInventory, removeInventory, addIngredient, removeIngredient, savePlan, cancelPlan]);
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 }
@@ -232,4 +278,4 @@ export function useData() {
   return ctx;
 }
 
-export type { Feedback, Ingredient, InventoryItem, Meal, Note, Purchase };
+export type { Feedback, Ingredient, InventoryItem, Meal, Note, Plan, Purchase };

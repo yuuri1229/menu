@@ -2,15 +2,17 @@
 
 import clsx from "clsx";
 import { useState } from "react";
-import { Check, ChefHat, CircleCheck, Clock, Lightbulb, MessageCircleHeart, Minus, Pencil, ShoppingBasket, Sparkles, ThumbsDown, ThumbsUp, Bento } from "@/components/icons";
+import { CalendarEdit, Check, ChefHat, CircleCheck, Clock, Lightbulb, MessageCircleHeart, Minus, Pencil, ShoppingBasket, Sparkles, ThumbsDown, ThumbsUp, Bento } from "@/components/icons";
 import { useData } from "@/lib/data";
+import { useNow } from "@/lib/now";
 import { mdw, wd } from "@/lib/date";
 import { yen } from "@/lib/format";
 import { parseMarkdown } from "@/lib/markdown";
 import { isBento, memoSentences, SLOT_META, splitTitle, titleTag } from "@/lib/meals";
 import { FEEDBACK_TAGS, FEEDBACK_TEXT_MAX, VERDICTS } from "@/lib/types";
-import type { Feedback, FeedbackTag, Meal, Slot, Verdict } from "@/lib/types";
+import type { Feedback, FeedbackTag, Meal, Plan, Slot, Verdict } from "@/lib/types";
 import { Blocks } from "./NoteBlocks";
+import { PLAN_ICON, PlanSheet, planState, PlanTag, type PlanPreset } from "./Plan";
 import { Pill, Sheet } from "./ui";
 
 const TONE_TEXT = { morning: "text-morning", noon: "text-noon", night: "text-night" } as const;
@@ -30,11 +32,35 @@ function VerdictIcon({ verdict, className }: { verdict: Verdict; className?: str
   return <Icon className={className} aria-hidden />;
 }
 
-/** 一覧で使う一行の献立 */
-export function MealRow({ meal, slot, onOpen, compact }: { meal?: Meal; slot: Slot; onOpen?: (m: Meal) => void; compact?: boolean }) {
+/** 一覧で使う一行の献立。date を渡すと、献立がなくても外食・不在の予定を出す */
+export function MealRow({ meal, slot, date, onOpen, compact }: { meal?: Meal; slot: Slot; date?: string; onOpen?: (m: Meal) => void; compact?: boolean }) {
   const meta = SLOT_META[slot];
-  const { feedbackByMeal } = useData();
+  const { feedbackByMeal, planAt } = useData();
+  const [editing, setEditing] = useState<Plan | null>(null);
   const feedback = meal ? feedbackByMeal.get(meal.id) : undefined;
+  const plan = planAt(date ?? meal?.date ?? null, slot);
+  if (!meal && plan) {
+    const Icon = PLAN_ICON[plan.kind];
+    return (
+      <>
+        <button
+          type="button"
+          onClick={() => setEditing(plan)}
+          className={clsx("tap flex w-full items-center gap-3 px-4 text-left hover:bg-surface-2", compact ? "py-2.5" : "py-3")}
+        >
+          <span className={clsx("w-5 shrink-0 text-center text-[13px] font-bold", TONE_TEXT[meta.tone])}>{meta.short}</span>
+          <span className="min-w-0 flex-1">
+            <span className="flex items-center gap-1.5 text-[15px] font-medium text-ink-2">
+              <Icon className="size-4 text-night" />
+              {plan.kind}
+            </span>
+            {!compact && plan.memo && <span className="block truncate text-[12px] text-ink-3">{plan.memo}</span>}
+          </span>
+        </button>
+        <PlanSheet plan={editing} preset={null} onClose={() => setEditing(null)} />
+      </>
+    );
+  }
   if (!meal) {
     return (
       <div className={clsx("flex items-center gap-3 px-4", compact ? "py-2.5" : "py-3")}>
@@ -52,7 +78,7 @@ export function MealRow({ meal, slot, onOpen, compact }: { meal?: Meal; slot: Sl
     >
       <span className={clsx("w-5 shrink-0 text-center text-[13px] font-bold", TONE_TEXT[meta.tone])}>{meta.short}</span>
       <span className="min-w-0 flex-1">
-        <span className={clsx("block truncate text-[15px] font-medium", meal.done && "text-ink-2")}>
+        <span className={clsx("block truncate text-[15px] font-medium", (meal.done || plan) && "text-ink-2", plan && "line-through decoration-ink-3")}>
           {isBento(meal) && <Bento className="mr-1 inline size-4 -translate-y-px align-middle text-ink-3" aria-label="お弁当" />}
           {head}
         </span>
@@ -60,6 +86,7 @@ export function MealRow({ meal, slot, onOpen, compact }: { meal?: Meal; slot: Sl
           <span className="block truncate text-[12px] text-ink-3">{extras.length ? `＋${extras.join("・")}` : meal.sides}</span>
         )}
       </span>
+      {plan && <PlanTag plan={plan} className="shrink-0" />}
       {feedback && (
         <span className={clsx("shrink-0", VERDICT_COLOR[feedback.verdict])} role="img" aria-label={`感想：${feedback.verdict}`}>
           <VerdictIcon verdict={feedback.verdict} className="size-[18px]" />
@@ -68,6 +95,7 @@ export function MealRow({ meal, slot, onOpen, compact }: { meal?: Meal; slot: Sl
       {meal.done ? (
         <CircleCheck className="size-[18px] shrink-0 text-ok" aria-label="作った" />
       ) : (
+        !plan &&
         meal.minutes != null && (
           <span className="num flex shrink-0 items-center gap-1 text-[12px] text-ink-3">
             <Clock className="size-3.5" />
@@ -80,13 +108,32 @@ export function MealRow({ meal, slot, onOpen, compact }: { meal?: Meal; slot: Sl
 }
 
 /** 大きく見せる「次のごはん」 */
-export function MealHero({ meal, slot, onOpen, label }: { meal?: Meal; slot: Slot; onOpen: (m: Meal) => void; label: string }) {
+export function MealHero({ meal, slot, date, onOpen, label }: { meal?: Meal; slot: Slot; date: string; onOpen: (m: Meal) => void; label: string }) {
+  const { planAt } = useData();
+  const plan = planAt(date, slot);
+  const [editing, setEditing] = useState<Plan | null>(null);
+  if (plan && !meal) {
+    const Icon = PLAN_ICON[plan.kind];
+    return (
+      <>
+        <button type="button" onClick={() => setEditing(plan)} className="tap card block w-full p-5 text-left">
+          <p className="text-[13px] font-medium text-ink-3">{label}</p>
+          <p className="mt-2 flex items-center gap-2 font-display text-[22px] leading-snug font-bold">
+            <Icon className="size-6 text-night" />
+            {plan.kind}の予定
+          </p>
+          {plan.memo && <p className="mt-1 text-sm text-ink-2">{plan.memo}</p>}
+        </button>
+        <PlanSheet plan={editing} preset={null} onClose={() => setEditing(null)} />
+      </>
+    );
+  }
   if (!meal) {
     return (
       <div className="card p-5">
         <p className="text-[13px] font-medium text-ink-3">{label}</p>
         <p className="mt-2 font-display text-xl font-bold text-ink-2">まだ献立がありません</p>
-        <p className="mt-1 text-sm text-ink-3">土曜の夕方に翌週分が自動で作られます</p>
+        <p className="mt-1 text-sm text-ink-3">日曜の20時に翌週分が自動で作られます</p>
       </div>
     );
   }
@@ -96,6 +143,7 @@ export function MealHero({ meal, slot, onOpen, label }: { meal?: Meal; slot: Slo
       <div className="flex items-center gap-2">
         <p className="text-[13px] font-medium text-ink-3">{label}</p>
         <SlotLabel slot={slot} meal={meal} />
+        {plan && <PlanTag plan={plan} />}
         {meal.done && (
           <Pill tone="ok">
             <CircleCheck className="size-3" />
@@ -213,6 +261,8 @@ export function MealSheet({ meal: opened, onClose }: { meal: Meal | null; onClos
           </section>
         )}
 
+        <PlanSection meal={meal} />
+
         {ingredients.length > 0 && (
           <section>
             <h3 className="mb-2 flex items-center gap-1.5 text-[13px] font-bold text-ink-2">
@@ -249,6 +299,43 @@ export function MealSheet({ meal: opened, onClose }: { meal: Meal | null; onClos
         <FeedbackSection key={meal.id} meal={meal} />
       </div>
     </Sheet>
+  );
+}
+
+/** 急に外食・不在になったとき（または予定がなくなったとき）の入口 */
+function PlanSection({ meal }: { meal: Meal }) {
+  const { planAt } = useData();
+  const { today } = useNow();
+  const plan = planAt(meal.date, meal.slot);
+  const [open, setOpen] = useState<{ plan: Plan | null; preset: PlanPreset | null } | null>(null);
+  // 済んだ日の食事には新しく予定を付けない
+  if (!meal.date || !meal.slot || (!plan && meal.date < today)) return null;
+  return (
+    <section>
+      {plan ? (
+        <button type="button" onClick={() => setOpen({ plan, preset: null })} className="tap flex w-full items-center gap-3 rounded-2xl bg-night-soft p-4 text-left">
+          <CalendarEdit className="size-5 shrink-0 text-night" />
+          <span className="min-w-0 flex-1 text-[14px]">
+            <span className="block font-bold">{plan.kind}の予定があります</span>
+            <span className="block text-[12px] text-ink-2">
+              {plan.memo ? `${plan.memo}・` : ""}
+              {planState(plan)}
+            </span>
+          </span>
+          <span className="shrink-0 rounded-full bg-surface px-3 py-1 text-[12px] text-ink-2">変更・取り消し</span>
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setOpen({ plan: null, preset: { date: meal.date!, slots: [meal.slot!] } })}
+          className="tap flex w-full min-h-11 items-center justify-center gap-2 rounded-2xl border border-line text-[14px] text-ink-2"
+        >
+          <CalendarEdit className="size-[18px]" />
+          この食事は外食・家にいないことになった
+        </button>
+      )}
+      <PlanSheet plan={open?.plan ?? null} preset={open?.preset ?? null} onClose={() => setOpen(null)} />
+    </section>
   );
 }
 
