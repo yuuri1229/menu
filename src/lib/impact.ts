@@ -130,4 +130,16 @@ export function computeImpact(
   return { skipped, dontBuy, useUp, missing, nextTrip };
 }
 
+/** Claude が予定と在庫を確認する時刻（日本時間。定期タスクの設定と同じにする） */
+export const CHECK_HOURS = [7, 12, 21];
+
+/** 次の確認の日付と時刻。今の時（0〜23）がその時刻ちょうどなら、もう済んだとみなして次にする */
+export function nextCheck(today: string, hour: number): { date: string; hour: number } {
+  const h = CHECK_HOURS.find((x) => x > hour);
+  if (h != null) return { date: today, hour: h };
+  const d = new Date(`${today}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + 1);
+  return { date: d.toISOString().slice(0, 10), hour: CHECK_HOURS[0] };
+}
+
 export const hasImpact = (i: Impact) => i.dontBuy.length + i.useUp.length + i.missing.length > 0;
