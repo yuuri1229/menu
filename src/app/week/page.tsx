@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import clsx from "clsx";
 import { CalendarDays, CalendarEdit, ChevronLeft, ChevronRight, Clock } from "@/components/icons";
 import { MealRow, MealSheet } from "@/components/Meal";
+import { ImpactCard } from "@/components/Impact";
 import { PageHeader } from "@/components/PageHeader";
 import { PLAN_ICON, PlanSheet, type PlanPreset } from "@/components/Plan";
 import { Empty, LoadingCards } from "@/components/ui";
@@ -171,6 +172,7 @@ function Week() {
         </Empty>
       ) : (
         <div className="grid gap-3 lg:grid-cols-2">
+          {days[6] >= today && <ImpactCard className="lg:col-span-2" />}
           {days.map((d, i) => {
             const list = mealsOn(meals, d);
             const isToday = d === today;

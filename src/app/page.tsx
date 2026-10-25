@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import clsx from "clsx";
 import { ChevronRight, Lightbulb, Refrigerator, ShoppingBasket, TriangleAlert, Wallet } from "@/components/icons";
 import { MealHero, MealRow, MealSheet } from "@/components/Meal";
+import { ImpactCard } from "@/components/Impact";
 import { InstallHint } from "@/components/InstallHint";
 import { PageHeader } from "@/components/PageHeader";
 import { LoadingCards, Progress, SectionTitle } from "@/components/ui";
@@ -77,6 +78,8 @@ export default function TodayPage() {
           <div className="rise">
             <MealHero meal={heroMeal} slot={heroSlot} date={late ? tomorrow : today} onOpen={setOpen} label={heroLabel} />
           </div>
+
+          <ImpactCard className="rise" />
 
           {tips.length > 0 && (
             <section className="rise card p-4" style={{ animationDelay: "60ms" }} aria-label="段取り">

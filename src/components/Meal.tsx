@@ -2,7 +2,7 @@
 
 import clsx from "clsx";
 import { useState } from "react";
-import { CalendarEdit, Check, ChefHat, CircleCheck, Clock, Lightbulb, MessageCircleHeart, Minus, Pencil, ShoppingBasket, Sparkles, ThumbsDown, ThumbsUp, Bento } from "@/components/icons";
+import { CalendarEdit, Check, ChefHat, TriangleAlert, CircleCheck, Clock, Lightbulb, MessageCircleHeart, Minus, Pencil, ShoppingBasket, Sparkles, ThumbsDown, ThumbsUp, Bento } from "@/components/icons";
 import { useData } from "@/lib/data";
 import { useNow } from "@/lib/now";
 import { mdw, wd } from "@/lib/date";
@@ -12,6 +12,7 @@ import { isBento, memoSentences, SLOT_META, splitTitle, titleTag } from "@/lib/m
 import { FEEDBACK_TAGS, FEEDBACK_TEXT_MAX, VERDICTS } from "@/lib/types";
 import type { Feedback, FeedbackTag, Meal, Plan, Slot, Verdict } from "@/lib/types";
 import { Blocks } from "./NoteBlocks";
+import { useImpact } from "./Impact";
 import { PLAN_ICON, PlanSheet, planState, PlanTag, type PlanPreset } from "./Plan";
 import { Pill, Sheet } from "./ui";
 
@@ -39,6 +40,7 @@ export function MealRow({ meal, slot, date, onOpen, compact }: { meal?: Meal; sl
   const [editing, setEditing] = useState<Plan | null>(null);
   const feedback = meal ? feedbackByMeal.get(meal.id) : undefined;
   const plan = planAt(date ?? meal?.date ?? null, slot);
+  const missing = useImpact().missing.find((x) => x.meal.id === meal?.id);
   if (!meal && plan) {
     const Icon = PLAN_ICON[plan.kind];
     return (
@@ -87,6 +89,11 @@ export function MealRow({ meal, slot, date, onOpen, compact }: { meal?: Meal; sl
         )}
       </span>
       {plan && <PlanTag plan={plan} className="shrink-0" />}
+      {missing && (
+        <span className="shrink-0 text-danger" role="img" aria-label={`${missing.names.join("・")}が切れています`}>
+          <TriangleAlert className="size-[18px]" />
+        </span>
+      )}
       {feedback && (
         <span className={clsx("shrink-0", VERDICT_COLOR[feedback.verdict])} role="img" aria-label={`感想：${feedback.verdict}`}>
           <VerdictIcon verdict={feedback.verdict} className="size-[18px]" />
