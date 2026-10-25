@@ -54,3 +54,15 @@ test("外食・不在の食事は段取りを出さず、予定として知ら�
   );
   assert.equal(n.body, "予定：夜 外食（飲み会）\n献立：朝 納豆ご飯");
 });
+
+test("数日の不在の途中の日は、その日の食事を全部予定として扱う", () => {
+  const n = buildReminder(
+    {
+      meals: [{ date: "2026-11-06", slot: "夕食", title: "生姜焼き", memo: "炊飯は朝に予約。" }],
+      ingredients: [],
+      plans: [{ date: "2026-11-05", slots: ["昼食", "夕食"], endDate: "2026-11-07", endSlots: ["朝食", "昼食"], kind: "不在", memo: "帰省", canceled: false }],
+    },
+    "2026-11-06",
+  );
+  assert.equal(n.body, "予定：朝・昼・夜 不在（帰省）");
+});

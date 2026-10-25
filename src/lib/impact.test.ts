@@ -20,7 +20,7 @@ test("外食の献立の食材を、買わない候補と使い切りたい物�
     ing("egg", "卵", "卵・大豆製品", null, false, ["dinner", "next"], "在庫から"),
     ing("later", "うどん", "主食", "2026-10-28", false, ["next"]),
   ];
-  const plans = [{ id: "p", date: "2026-10-27", slots: ["夕食" as const], kind: "外食" as const, memo: "", canceled: false, uid: null, updatedAt: null, handledAt: null }];
+  const plans = [{ id: "p", date: "2026-10-27", slots: ["夕食" as const], endDate: null, endSlots: [], kind: "外食" as const, memo: "", canceled: false, uid: null, updatedAt: null, handledAt: null }];
   const r = computeImpact({ meals, ingredients, inventory: [], plans }, "2026-10-26");
   assert.deepEqual(r.skipped.map((m) => m.id), ["dinner"]);
   assert.deepEqual(r.dontBuy.map((i) => i.id), ["moyashi"]);

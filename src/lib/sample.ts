@@ -246,7 +246,8 @@ export function sampleSnapshot(): Snapshot {
     ],
     feedback: [],
     plans: [
-      { id: "pl-1", date: addDays(mon, 3), slots: ["夕食"], kind: "外食", memo: "会社の飲み会", canceled: false, uid: "demo", updatedAt: null, handledAt: null },
+      { id: "pl-1", date: addDays(mon, 3), slots: ["夕食"], endDate: null, endSlots: [], kind: "外食", memo: "会社の飲み会", canceled: false, uid: "demo", updatedAt: null, handledAt: null },
+      { id: "pl-2", date: addDays(mon, 9), slots: ["昼食", "夕食"], endDate: addDays(mon, 11), endSlots: ["朝食", "昼食"], kind: "不在", memo: "実家に帰省", canceled: false, uid: "demo", updatedAt: null, handledAt: null },
     ],
   };
 }

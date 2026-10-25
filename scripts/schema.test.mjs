@@ -50,3 +50,11 @@ test("予定は日付と食事が必要で、種類は外食か不在", () => {
   assert.throws(() => validate("plans", { date: "2026-10-27", slots: ["夕食"], kind: "旅行" }), /kind/);
   assert.throws(() => validate("plans", { slots: ["夕食"], kind: "外食" }), /date: 空にできない/);
 });
+
+test("数日の予定は帰宅日が出発日より後で、帰宅日に食べない食事が要る", () => {
+  const d = validate("plans", { date: "2026-11-05", slots: ["昼食", "夕食"], endDate: "2026-11-07", endSlots: ["朝食"], kind: "不在" });
+  assert.deepEqual(d.endSlots, ["朝食"]);
+  assert.equal(validate("plans", { date: "2026-11-05", slots: ["夕食"], kind: "外食" }).endDate, null);
+  assert.throws(() => validate("plans", { date: "2026-11-05", slots: ["夕食"], endDate: "2026-11-05", endSlots: ["朝食"], kind: "不在" }), /endDate/);
+  assert.throws(() => validate("plans", { date: "2026-11-05", slots: ["夕食"], endDate: "2026-11-07", kind: "不在" }), /endSlots/);
+});

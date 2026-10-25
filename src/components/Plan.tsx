@@ -8,10 +8,11 @@ import { useData } from "@/lib/data";
 import { useNow } from "@/lib/now";
 import { addDays, mdw } from "@/lib/date";
 import { SLOT_META, splitTitle } from "@/lib/meals";
+import { planCovers, planDays, planWhen, slotsFrom, slotsUntil } from "@/lib/plans";
 import { PLAN_KINDS, PLAN_MEMO_MAX, SLOTS } from "@/lib/types";
 import type { Plan, PlanKind, Slot } from "@/lib/types";
 import { NextCheck } from "./Impact";
-import { Pill, Sheet } from "./ui";
+import { Pill, Segmented, Sheet } from "./ui";
 
 export const PLAN_ICON = { 外食: EatingOut, 不在: Away } as const satisfies Record<PlanKind, unknown>;
 
@@ -47,14 +48,23 @@ function PlanForm({ plan, preset, onClose }: { plan: Plan | null; preset: PlanPr
   const [slots, setSlots] = useState<Slot[]>(plan?.slots ?? preset?.slots ?? ["夕食"]);
   const [kind, setKind] = useState<PlanKind>(plan?.kind ?? "外食");
   const [memo, setMemo] = useState(plan?.memo ?? "");
+  // 数日家を空ける：出発日の最初に食べない食事 〜 帰宅日の最後に食べない食事
+  const [multi, setMulti] = useState(!!plan?.endDate);
+  const [first, setFirst] = useState<Slot>(SLOTS.find((s) => (plan?.slots ?? []).includes(s)) ?? "昼食");
+  const [endDate, setEndDate] = useState(plan?.endDate ?? addDays(date, 2));
+  const [last, setLast] = useState<Slot>([...SLOTS].reverse().find((s) => (plan?.endSlots ?? []).includes(s)) ?? "昼食");
 
   const toggle = (s: Slot) => setSlots((cur) => (cur.includes(s) ? cur.filter((x) => x !== s) : SLOTS.filter((x) => x === s || cur.includes(x))));
+  const fields = multi
+    ? { date, slots: slotsFrom(first), endDate, endSlots: slotsUntil(last), kind, memo }
+    : { date, slots, endDate: null, endSlots: [], kind, memo };
+  const valid = !!date && fields.slots.length > 0 && (!multi || endDate > date);
   // すでに献立がある食事（急な予定）か、これから組む食事（前もって分かる予定）か
-  const planned = meals.filter((m) => m.date === date && m.slot && slots.includes(m.slot));
+  const planned = valid ? meals.filter((m) => m.date && m.slot && planCovers(fields, m.date, m.slot)) : [];
   const soon = date <= addDays(today, 1);
 
   const save = () => {
-    savePlan(plan?.id ?? null, { date, slots, kind, memo });
+    savePlan(plan?.id ?? null, fields);
     onClose();
   };
   const cancel = () => {
@@ -81,17 +91,52 @@ function PlanForm({ plan, preset, onClose }: { plan: Plan | null; preset: PlanPr
         </div>
       }
       footer={
-        <PrimaryButton disabled={!date || !slots.length} onClick={save}>
+        <PrimaryButton disabled={!valid} onClick={save}>
           <Check className="size-5" />
           {plan?.canceled ? "やっぱり予定あり（戻す）" : plan ? "保存する" : "登録する"}
         </PrimaryButton>
       }
     >
       <div className="space-y-5">
-        <Field label="日付">
-          <input type="date" value={date} min={plan ? undefined : today} onChange={(e) => setDate(e.target.value)} className={inputClass} />
-        </Field>
+        <Segmented
+          label="期間"
+          value={multi ? "multi" : "single"}
+          onChange={(v) => setMulti(v === "multi")}
+          options={[
+            { value: "single", label: "1日だけ" },
+            { value: "multi", label: "数日家を空ける" },
+          ]}
+        />
 
+        {multi ? (
+          <>
+            <fieldset className="space-y-2">
+              <legend className="mb-2 text-[13px] font-bold text-ink-2">出発</legend>
+              <input type="date" aria-label="出発日" value={date} min={plan ? undefined : today} onChange={(e) => setDate(e.target.value)} className={inputClass} />
+              <SlotPick label="最初に食べない食事" value={first} onChange={setFirst} />
+            </fieldset>
+            <fieldset className="space-y-2">
+              <legend className="mb-2 text-[13px] font-bold text-ink-2">帰宅</legend>
+              <input type="date" aria-label="帰宅日" value={endDate} min={addDays(date, 1)} onChange={(e) => setEndDate(e.target.value)} className={inputClass} />
+              <SlotPick label="最後に食べない食事" value={last} onChange={setLast} />
+            </fieldset>
+            {valid ? (
+              <p className="num rounded-xl bg-night-soft px-3.5 py-2.5 text-[13px] text-ink">
+                {planWhen(fields)} の{planDays(fields).length}日間、家で食べません（
+                {mdw(date)}の{slotsFrom(first).length < 3 ? `${SLOT_META[SLOTS[SLOTS.indexOf(first) - 1]].label}まで` : "朝から"}家で、
+                {mdw(endDate)}の{slotsUntil(last).length < 3 ? `${SLOT_META[SLOTS[SLOTS.indexOf(last) + 1]].label}から` : "翌日から"}家で食べる）
+              </p>
+            ) : (
+              <p className="text-[13px] text-danger">帰宅日は出発日より後にしてください。</p>
+            )}
+          </>
+        ) : (
+          <Field label="日付">
+            <input type="date" value={date} min={plan ? undefined : today} onChange={(e) => setDate(e.target.value)} className={inputClass} />
+          </Field>
+        )}
+
+        {!multi && (
         <fieldset>
           <legend className="mb-2 text-[13px] font-bold text-ink-2">食事</legend>
           <div className="grid grid-cols-3 gap-2">
@@ -111,6 +156,7 @@ function PlanForm({ plan, preset, onClose }: { plan: Plan | null; preset: PlanPr
             ))}
           </div>
         </fieldset>
+        )}
 
         <Field label="種類" hint="外食：お店やお呼ばれで食べる。不在：出かけていて家で食べない（食べる物は自分で用意）。">
           <Chips label="種類" value={kind} options={PLAN_KINDS} allowEmpty={false} onChange={(k) => k && setKind(k)} />
@@ -131,13 +177,16 @@ function PlanForm({ plan, preset, onClose }: { plan: Plan | null; preset: PlanPr
           <div className="space-y-1.5">
             {planned.length > 0 ? (
               <p>
-                {planned.map((m) => `${mdw(m.date!)} ${SLOT_META[m.slot!].label}「${splitTitle(m.title).head}」`).join("、")}
+                {planned.length > 3
+                  ? `${planned.length}食分の献立`
+                  : planned.map((m) => `${mdw(m.date!)} ${SLOT_META[m.slot!].label}「${splitTitle(m.title).head}」`).join("、")}
                 は作らない扱いになり、使うはずだった食材は先の献立に回します（肉は冷凍、傷みやすい物から先に使う）。次は <NextCheck /> に Claude が組み直します（毎日7時・12時・21時）。
               </p>
             ) : (
               <p>日曜20時の献立づくりで、この食事の分の食材は買わずに組みます。</p>
             )}
-            {slots.includes("夕食") && <p>夕食の取り分けがない翌日のお弁当は、朝にレンジで作れる簡単なものにします。</p>}
+            {fields.slots.includes("夕食") && <p>夕食の取り分けがない翌日のお弁当は、朝にレンジで作れる簡単なものにします。</p>}
+            {multi && <p>留守の間に買い物はせず、出発前に傷みやすい物を使い切り、帰宅日の食事は日持ちする在庫で組みます。</p>}
             {plan?.handledAt && <p>予定がなくなったら下の「予定がなくなった」を押してください。在庫と買い足しで献立を戻します。</p>}
             {soon && <p>今日・明日の分をすぐ組み直したいときは、チャットで Claude に伝えてください。</p>}
           </div>
@@ -155,5 +204,31 @@ function PlanForm({ plan, preset, onClose }: { plan: Plan | null; preset: PlanPr
         )}
       </div>
     </Sheet>
+  );
+}
+
+/** 朝・昼・夜から1つ選ぶ */
+function SlotPick({ label, value, onChange }: { label: string; value: Slot; onChange: (s: Slot) => void }) {
+  return (
+    <div>
+      <p className="mb-1.5 text-[12px] text-ink-3">{label}</p>
+      <div role="radiogroup" aria-label={label} className="grid grid-cols-3 gap-2">
+        {SLOTS.map((s) => (
+          <button
+            key={s}
+            type="button"
+            role="radio"
+            aria-checked={value === s}
+            onClick={() => onChange(s)}
+            className={clsx(
+              "tap min-h-11 rounded-xl border text-[14px] font-medium",
+              value === s ? "border-accent bg-accent text-accent-ink" : "border-line bg-surface text-ink-2",
+            )}
+          >
+            {SLOT_META[s].label}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }

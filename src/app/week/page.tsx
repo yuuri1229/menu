@@ -14,6 +14,7 @@ import { useNow } from "@/lib/now";
 import { addDays, md, mdw, wd, weekDays, weekStart } from "@/lib/date";
 import { sum } from "@/lib/format";
 import { mealsOn } from "@/lib/meals";
+import { planEnd, planWhen } from "@/lib/plans";
 import { SLOTS, type Meal, type Plan } from "@/lib/types";
 
 const GENRE_COLOR: Record<string, string> = {
@@ -61,7 +62,7 @@ function Week() {
   const genreTotal = sum(genres.map(([, n]) => n));
   // 取り消し済み（献立を戻す待ち）も出して、やっぱり予定ありに戻せるようにする
   const weekPlans = useMemo(
-    () => plans.filter((p) => p.date >= days[0] && p.date <= days[6]).sort((a, b) => a.date.localeCompare(b.date)),
+    () => plans.filter((p) => p.date <= days[6] && planEnd(p) >= days[0]).sort((a, b) => a.date.localeCompare(b.date)),
     [plans, days],
   );
 
@@ -69,7 +70,7 @@ function Week() {
   const dated = meals.map((m) => m.date).filter((d): d is string => !!d).sort();
   const minWeek = dated.length ? weekStart(dated[0]) : thisWeek;
   // 来週の予定は献立ができる前（日曜20時より前）に登録したいので、来週までは進める
-  const maxWeek = [dated.length ? weekStart(dated[dated.length - 1]) : thisWeek, addDays(thisWeek, 7), ...plans.map((p) => weekStart(p.date))].sort().pop()!;
+  const maxWeek = [dated.length ? weekStart(dated[dated.length - 1]) : thisWeek, addDays(thisWeek, 7), ...plans.map((p) => weekStart(planEnd(p)))].sort().pop()!;
 
   useEffect(() => {
     if (status === "ready" && start === thisWeek) todayRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
@@ -151,9 +152,8 @@ function Week() {
                     className={clsx("tap flex items-center gap-1.5 rounded-full bg-night-soft px-3 py-1.5 text-[13px]", p.canceled && "opacity-60")}
                   >
                     <Icon className="size-4 text-night" />
-                    <span className="num">{mdw(p.date)}</span>
-                    <span className={clsx(p.canceled && "line-through")}>
-                      {SLOTS.filter((s) => p.slots.includes(s)).map((s) => s.slice(0, 1)).join("・")} {p.kind}
+                    <span className={clsx("num", p.canceled && "line-through")}>
+                      {planWhen(p)} {p.kind}
                     </span>
                     {(p.canceled || !p.handledAt) && <span className="text-[11px] text-ink-3">{p.canceled ? "取り消し" : "反映待ち"}</span>}
                   </button>

@@ -1,5 +1,7 @@
 // プッシュ通知の中身を組み立てる（送るのは scripts/db.mjs）。データを受け取って文を返すだけなので、テストできる。
 
+import { planCovers } from "./plans.mjs";
+
 /** 献立メモから段取りとして拾う言葉。src/lib/config.ts の PREP_KEYWORDS と同じにする */
 export const PREP_KEYWORDS = ["炊飯", "予約", "取り分け", "冷凍", "解凍", "冷蔵庫に移", "仕込み", "前日", "朝は"];
 
@@ -43,15 +45,15 @@ export function buildReminder({ meals = [], ingredients = [], plans = [] }, tomo
     lines.push(`買い物${trip ? ` ${trip.split(/\s/)[0]}` : ""}：${names}${toBuy.length > 4 ? ` ほか${toBuy.length - 4}品` : ""}${total ? `（約${total.toLocaleString("ja-JP")}円）` : ""}`);
   }
 
-  const dayPlans = plans.filter((p) => !p.canceled && p.date === tomorrow);
-  const away = new Set(dayPlans.flatMap((p) => p.slots ?? []));
+  const dayPlans = plans.filter((p) => !p.canceled && Object.keys(SLOT_ORDER).some((s) => planCovers(p, tomorrow, s)));
+  const away = new Set(Object.keys(SLOT_ORDER).filter((s) => dayPlans.some((p) => planCovers(p, tomorrow, s))));
   const dayMeals = meals
     .filter((m) => m.date === tomorrow && !away.has(m.slot))
     .sort((a, b) => (SLOT_ORDER[a.slot] ?? 9) - (SLOT_ORDER[b.slot] ?? 9));
   const tips = [...new Set(dayMeals.flatMap((m) => prepTips(m.memo)))];
   for (const t of tips.slice(0, 3)) lines.push(`段取り：${t}`);
   for (const p of dayPlans) {
-    const slots = [...p.slots].sort((a, b) => SLOT_ORDER[a] - SLOT_ORDER[b]).map((s) => SLOT_SHORT[s]).join("・");
+    const slots = Object.keys(SLOT_ORDER).filter((s) => planCovers(p, tomorrow, s)).map((s) => SLOT_SHORT[s]).join("・");
     lines.push(`予定：${slots} ${p.kind}${p.memo?.trim() ? `（${p.memo.trim().split("\n")[0]}）` : ""}`);
   }
 

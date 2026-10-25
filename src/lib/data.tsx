@@ -5,6 +5,7 @@ import { addDoc, collection, deleteDoc, doc, onSnapshot, setDoc, updateDoc } fro
 import { DEMO } from "./config";
 import { getDb, getFirebaseAuth } from "./firebase";
 import { parseMarkdown } from "./markdown";
+import { planCovers } from "./plans";
 import { sampleSnapshot } from "./sample";
 import type { Feedback, FeedbackTag, Ingredient, InventoryItem, Meal, Note, Plan, Purchase, Slot, Snapshot, StockStatus, Verdict } from "./types";
 
@@ -39,7 +40,7 @@ interface DataApi extends Snapshot {
   cancelPlan: (plan: Plan) => void;
 }
 
-export type PlanFields = Pick<Plan, "date" | "slots" | "kind" | "memo">;
+export type PlanFields = Pick<Plan, "date" | "slots" | "endDate" | "endSlots" | "kind" | "memo">;
 
 /** アプリから書ける在庫の項目（魚介の確認 seafood は Claude が付ける） */
 export type InventoryFields = Pick<InventoryItem, "name" | "category" | "storage" | "status" | "remaining" | "memo" | "bestBefore" | "purchasedAt">;
@@ -74,7 +75,8 @@ function derive(raw: Raw): Snapshot {
     })),
     notes: (raw.notes as unknown as Note[]).map((n) => ({ ...n, blocks: parseMarkdown(n.markdown ?? "") })),
     feedback: raw.feedback as unknown as Feedback[],
-    plans: raw.plans as unknown as Plan[],
+    // 数日の予定ができる前の文書は endDate・endSlots を持たない
+    plans: (raw.plans as unknown as Plan[]).map((p) => ({ ...p, endDate: p.endDate ?? null, endSlots: p.endSlots ?? [] })),
   };
 }
 
@@ -263,7 +265,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       addIngredient,
       removeIngredient,
       sendFeedback,
-      planAt: (date, slot) => (date && slot ? (snap.plans.find((p) => !p.canceled && p.date === date && p.slots?.includes(slot)) ?? null) : null),
+      planAt: (date, slot) => (date && slot ? (snap.plans.find((p) => !p.canceled && planCovers(p, date, slot)) ?? null) : null),
       savePlan,
       cancelPlan,
     };
