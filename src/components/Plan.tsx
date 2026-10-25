@@ -131,7 +131,7 @@ function PlanForm({ plan, preset, onClose }: { plan: Plan | null; preset: PlanPr
             {planned.length > 0 ? (
               <p>
                 {planned.map((m) => `${mdw(m.date!)} ${SLOT_META[m.slot!].label}「${splitTitle(m.title).head}」`).join("、")}
-                は作らない扱いになり、使うはずだった食材は先の献立に回します（肉は冷凍、傷みやすい物から先に使う）。毎晩21時に Claude が組み直します。
+                は作らない扱いになり、使うはずだった食材は先の献立に回します（肉は冷凍、傷みやすい物から先に使う）。毎日7時・12時・21時に Claude が組み直します。
               </p>
             ) : (
               <p>日曜20時の献立づくりで、この食事の分の食材は買わずに組みます。</p>

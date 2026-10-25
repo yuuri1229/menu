@@ -35,7 +35,7 @@ interface Trip {
 function Shopping() {
   const params = useSearchParams();
   const { ingredients, notes, purchases, status, setBought, removeIngredient } = useData();
-  // 外食・不在の予定で作らなくなった献立にしか使わない食材（組み直しは Claude が毎晩21時）
+  // 外食・不在の予定で作らなくなった献立にしか使わない食材（組み直しは Claude が毎日7時・12時・21時）
   const dontBuy = new Set(useImpact().dontBuy.map((i) => i.id));
   const [hideDone, setHideDone] = useState(false);
   const [editMode, setEditMode] = useState(false);

@@ -11,7 +11,7 @@ import { SLOT_META, splitTitle } from "@/lib/meals";
 import type { Meal } from "@/lib/types";
 import { Pill } from "./ui";
 
-/** 予定・在庫の変更が献立と買い物に与える影響（決まりで計算した目安。組み直しは Claude が毎晩21時） */
+/** 予定・在庫の変更が献立と買い物に与える影響（決まりで計算した目安。組み直しは Claude が毎日7時・12時・21時） */
 export function useImpact(): Impact {
   const { meals, ingredients, inventory, plans } = useData();
   const { today } = useNow();
@@ -32,7 +32,7 @@ export function ImpactCard({ className }: { className?: string }) {
           予定・在庫の変更による影響
         </h2>
         <p className="mt-1 text-[12px] leading-snug text-ink-3">
-          献立の組み直しは毎晩21時に Claude が行います。それまでの目安です。
+          献立の組み直しは毎日7時・12時・21時に Claude が行います。それまでの目安です。
           {impact.nextTrip && ` 次の買い物は${mdw(impact.nextTrip)}。`}
         </p>
       </div>
