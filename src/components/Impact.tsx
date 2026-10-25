@@ -5,13 +5,13 @@ import clsx from "clsx";
 import { Snowflake, TriangleAlert } from "@/components/icons";
 import { useData } from "@/lib/data";
 import { useNow } from "@/lib/now";
-import { md, mdw } from "@/lib/date";
-import { computeImpact, hasImpact, type Impact } from "@/lib/impact";
+import { md, mdw, relativeDay } from "@/lib/date";
+import { computeImpact, hasImpact, nextCheck, type Impact } from "@/lib/impact";
 import { SLOT_META, splitTitle } from "@/lib/meals";
 import type { Meal } from "@/lib/types";
 import { Pill } from "./ui";
 
-/** 予定・在庫の変更が献立と買い物に与える影響（決まりで計算した目安。組み直しは Claude が毎晩21時） */
+/** 予定・在庫の変更が献立と買い物に与える影響（決まりで計算した目安。組み直しは Claude が毎日7時・12時・21時） */
 export function useImpact(): Impact {
   const { meals, ingredients, inventory, plans } = useData();
   const { today } = useNow();
@@ -19,6 +19,18 @@ export function useImpact(): Impact {
 }
 
 const mealLabel = (m: Meal) => `${mdw(m.date!)} ${m.slot ? SLOT_META[m.slot].short : ""} ${splitTitle(m.title).head}`;
+
+/** 「今日 12:00」のような次の確認の時刻 */
+export function NextCheck() {
+  const { today, hour } = useNow();
+  const next = nextCheck(today, hour);
+  const day = next.date === today ? "今日" : relativeDay(next.date, today) ?? mdw(next.date);
+  return (
+    <span className="num font-bold text-ink-2">
+      {day} {next.hour}:00
+    </span>
+  );
+}
 
 /** 今日・献立の画面に出す「予定・在庫の変更による影響」 */
 export function ImpactCard({ className }: { className?: string }) {
@@ -32,7 +44,7 @@ export function ImpactCard({ className }: { className?: string }) {
           予定・在庫の変更による影響
         </h2>
         <p className="mt-1 text-[12px] leading-snug text-ink-3">
-          献立の組み直しは毎晩21時に Claude が行います。それまでの目安です。
+          次は <NextCheck /> に Claude が献立を組み直します（毎日7時・12時・21時）。それまでの目安です。
           {impact.nextTrip && ` 次の買い物は${mdw(impact.nextTrip)}。`}
         </p>
       </div>

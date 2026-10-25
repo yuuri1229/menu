@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { computeImpact, sameFood } from "./impact.ts";
+import { computeImpact, nextCheck, sameFood } from "./impact.ts";
 
 const meal = (id: string, date: string, slot: "朝食" | "昼食" | "夕食", ingredientIds: string[], recipe = "") =>
   ({ id, title: id, date, slot, main: "", sides: "", memo: "", recipe, genre: null, minutes: null, done: false, prepAhead: false, ingredientIds });
@@ -46,4 +46,11 @@ test("切れた在庫を使う献立を拾う（買う予定がある物は除�
   ];
   const r = computeImpact({ meals, ingredients, inventory, plans: [] }, "2026-10-26");
   assert.deepEqual(r.missing.map((x) => [x.meal.id, x.names]), [["a", ["ごま油"]], ["b", ["納豆"]]]);
+});
+
+test("次の確認は7時・12時・21時のうち次の時刻、21時を過ぎたら翌朝7時", () => {
+  assert.deepEqual(nextCheck("2026-10-25", 6), { date: "2026-10-25", hour: 7 });
+  assert.deepEqual(nextCheck("2026-10-25", 7), { date: "2026-10-25", hour: 12 });
+  assert.deepEqual(nextCheck("2026-10-25", 18), { date: "2026-10-25", hour: 21 });
+  assert.deepEqual(nextCheck("2026-10-31", 21), { date: "2026-11-01", hour: 7 });
 });

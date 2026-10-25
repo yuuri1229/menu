@@ -12,7 +12,7 @@ import { isBento, memoSentences, SLOT_META, splitTitle, titleTag } from "@/lib/m
 import { FEEDBACK_TAGS, FEEDBACK_TEXT_MAX, VERDICTS } from "@/lib/types";
 import type { Feedback, FeedbackTag, Meal, Plan, Slot, Verdict } from "@/lib/types";
 import { Blocks } from "./NoteBlocks";
-import { useImpact } from "./Impact";
+import { NextCheck, useImpact } from "./Impact";
 import { PLAN_ICON, PlanSheet, planState, PlanTag, type PlanPreset } from "./Plan";
 import { Pill, Sheet } from "./ui";
 
@@ -327,6 +327,11 @@ function PlanSection({ meal }: { meal: Meal }) {
             <span className="block text-[12px] text-ink-2">
               {plan.memo ? `${plan.memo}・` : ""}
               {planState(plan)}
+              {!plan.handledAt && (
+                <>
+                  ・次の確認 <NextCheck />
+                </>
+              )}
             </span>
           </span>
           <span className="shrink-0 rounded-full bg-surface px-3 py-1 text-[12px] text-ink-2">変更・取り消し</span>
