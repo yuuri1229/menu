@@ -191,9 +191,10 @@ function CarryOver({ items, short, className }: { items: Ingredient[]; short?: b
   const names = items.map((i) => shortName(i.name)).join("・");
   if (short) {
     return (
-      <span className="shrink-0 text-warn" role="img" aria-label={`${names}は明日も使います`}>
-        <Repeat className="size-[18px]" />
-      </span>
+      <Pill tone="warn" className="shrink-0 px-2" aria-label={`${names}は明日も使います`}>
+        <Repeat className="size-3.5" />
+        明日も
+      </Pill>
     );
   }
   return (
