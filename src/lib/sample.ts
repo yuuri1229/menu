@@ -4,6 +4,24 @@
 import { addDays, md, todayJST, wd, weekStart } from "./date";
 import type { Ingredient, InventoryItem, Meal, Purchase, Slot, Snapshot } from "./types";
 
+const SAMPLE_RECIPE = `## 材料（1人分）
+- 豚こま切れ肉 150g
+- 玉ねぎ 1/2個
+- しょうゆ 大さじ1
+- みりん 大さじ1
+- おろし生姜（チューブ） 小さじ1
+- 千切りキャベツ 1袋
+
+## 作り方
+1. 玉ねぎを薄切りにする。しょうゆ・みりん・生姜を小皿で混ぜておく。
+2. フライパンに油を入れて中火で熱する。
+3. 豚肉と玉ねぎを入れ、3分炒める。
+4. 肉の色が変わったら、混ぜたたれを回し入れ、強めの中火で2分、絡めながら炒める。
+5. 皿に千切りキャベツを広げ、焼き上がりをのせる。
+
+## ポイント
+- たれは火を止める直前に足すと焦げにくい。`;
+
 type MealSeed = [title: string, main: string, sides: string, minutes: number, genre: string, memo: string];
 
 const WEEK: Record<Slot, MealSeed>[] = [
@@ -97,7 +115,7 @@ export function sampleSnapshot(): Snapshot {
       main,
       sides,
       memo,
-      recipe: "",
+      recipe: title.startsWith("豚の生姜焼き") ? SAMPLE_RECIPE : "",
       genre,
       minutes,
       done: addDays(mon, i) < today,

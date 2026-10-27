@@ -177,9 +177,9 @@ const TONES = {
 } as const;
 export type Tone = keyof typeof TONES;
 
-export function Pill({ tone = "neutral", children, className }: { tone?: Tone; children: ReactNode; className?: string }) {
+export function Pill({ tone = "neutral", children, className, ...rest }: { tone?: Tone; children: ReactNode; className?: string; "aria-label"?: string }) {
   return (
-    <span className={clsx("inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[12px] font-medium whitespace-nowrap", TONES[tone], className)}>
+    <span {...rest} className={clsx("inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[12px] font-medium whitespace-nowrap", TONES[tone], className)}>
       {children}
     </span>
   );

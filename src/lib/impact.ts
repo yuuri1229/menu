@@ -1,6 +1,7 @@
 // 外食・不在の予定や在庫の「切れた」が、次の買い物までの献立と食材にどう響くかを、アプリの中ですぐ計算する。
 // 献立そのものを組み直すのは Claude（毎日7時・12時・21時）。ここは決まりだけで判断して、画面に目安を出す。
 
+import { addDays } from "./date.ts";
 import { planCovers } from "./plans.ts";
 import type { Ingredient, InventoryItem, Meal, Plan } from "./types";
 
@@ -144,3 +145,29 @@ export function nextCheck(today: string, hour: number): { date: string; hour: nu
 }
 
 export const hasImpact = (i: Impact) => i.dontBuy.length + i.useUp.length + i.missing.length > 0;
+
+/** 毎日のように使う物（千切りキャベツなど）は目印にしない。これ以上の献立で使う食材は常備とみなす */
+const STAPLE_MEALS = 4;
+
+/**
+ * この献立で使う食材のうち、翌日の献立でも使う物（豚肉など、使い回す傷みやすい物）。
+ * 買い物回で分かれた同じ食材は同じ物として数え、翌日の別の食事で使うかを見る。
+ */
+export function carriedOver(meal: Meal, meals: Meal[], ingredients: Ingredient[]): Ingredient[] {
+  if (!meal.date) return [];
+  const nextIds = new Set(meals.filter((m) => m.date === addDays(meal.date!, 1)).map((m) => m.id));
+  if (!nextIds.size) return [];
+  const own = new Set(meal.ingredientIds);
+  const found: Ingredient[] = [];
+  for (const i of ingredients) {
+    if (!own.has(i.id) || /取りやめ/.test(i.name)) continue;
+    const same = ingredients.filter((j) => j.id === i.id || sameFood(j.name, i.name));
+    const used = new Set(same.flatMap((j) => j.mealIds));
+    if (used.size >= STAPLE_MEALS || ![...used].some((id) => nextIds.has(id))) continue;
+    if (!found.some((f) => normalizeName(f.name) === normalizeName(i.name))) found.push(i);
+  }
+  return found;
+}
+
+/** 表示用の短い名前（括弧と回の番号を除く） */
+export const shortName = (name: string) => normalizeName(name) || name;
