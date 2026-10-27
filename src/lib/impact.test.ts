@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { computeImpact, nextCheck, sameFood } from "./impact.ts";
+import { carriedOver, computeImpact, nextCheck, sameFood } from "./impact.ts";
 
 const meal = (id: string, date: string, slot: "朝食" | "昼食" | "夕食", ingredientIds: string[], recipe = "") =>
   ({ id, title: id, date, slot, main: "", sides: "", memo: "", recipe, genre: null, minutes: null, done: false, prepAhead: false, ingredientIds });
@@ -53,4 +53,23 @@ test("次の確認は7時・12時・21時のうち次の時刻、21時を過ぎ�
   assert.deepEqual(nextCheck("2026-10-25", 7), { date: "2026-10-25", hour: 12 });
   assert.deepEqual(nextCheck("2026-10-25", 18), { date: "2026-10-25", hour: 21 });
   assert.deepEqual(nextCheck("2026-10-31", 21), { date: "2026-11-01", hour: 7 });
+});
+
+test("翌日の献立でも使う食材を拾う（毎日使う常備は除く）", () => {
+  const meals = [
+    meal("d1", "2026-10-27", "夕食", ["pork", "cab1"]),
+    meal("d2", "2026-10-28", "夕食", ["pork2", "cab2"]),
+    meal("d3", "2026-10-29", "夕食", ["cab3"]),
+    meal("d4", "2026-10-30", "夕食", ["cab4"]),
+  ];
+  const ingredients = [
+    ing("pork", "豚こま", "肉", "2026-10-26", true, ["d1"]),
+    ing("pork2", "豚こま切れ肉（②）", "肉", "2026-10-28", false, ["d2"]),
+    ing("cab1", "千切りキャベツ", "野菜", null, true, ["d1"]),
+    ing("cab2", "千切りキャベツ①", "野菜", null, true, ["d2"]),
+    ing("cab3", "千切りキャベツ②", "野菜", null, true, ["d3"]),
+    ing("cab4", "千切りキャベツ③", "野菜", null, true, ["d4"]),
+  ];
+  assert.deepEqual(carriedOver(meals[0], meals, ingredients).map((i) => i.id), ["pork"]);
+  assert.deepEqual(carriedOver(meals[3], meals, ingredients), []);
 });

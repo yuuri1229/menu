@@ -2,15 +2,16 @@
 
 import clsx from "clsx";
 import { useState } from "react";
-import { CalendarEdit, Check, ChefHat, TriangleAlert, CircleCheck, Clock, Lightbulb, MessageCircleHeart, Minus, Pencil, ShoppingBasket, Sparkles, ThumbsDown, ThumbsUp, Bento } from "@/components/icons";
+import { CalendarEdit, Check, ChefHat, TriangleAlert, CircleCheck, Clock, Lightbulb, MessageCircleHeart, Minus, Pencil, Repeat, ShoppingBasket, Sparkles, ThumbsDown, ThumbsUp, Bento } from "@/components/icons";
 import { useData } from "@/lib/data";
+import { carriedOver, shortName } from "@/lib/impact";
 import { useNow } from "@/lib/now";
 import { mdw, wd } from "@/lib/date";
 import { yen } from "@/lib/format";
 import { parseMarkdown } from "@/lib/markdown";
 import { isBento, memoSentences, SLOT_META, splitTitle, titleTag } from "@/lib/meals";
 import { FEEDBACK_TAGS, FEEDBACK_TEXT_MAX, VERDICTS } from "@/lib/types";
-import type { Feedback, FeedbackTag, Meal, Plan, Slot, Verdict } from "@/lib/types";
+import type { Feedback, FeedbackTag, Ingredient, Meal, Plan, Slot, Verdict } from "@/lib/types";
 import { Blocks } from "./NoteBlocks";
 import { NextCheck, useImpact } from "./Impact";
 import { PLAN_ICON, PlanSheet, planState, PlanTag, type PlanPreset } from "./Plan";
@@ -36,7 +37,7 @@ function VerdictIcon({ verdict, className }: { verdict: Verdict; className?: str
 /** 一覧で使う一行の献立。date を渡すと、献立がなくても外食・不在の予定を出す */
 export function MealRow({ meal, slot, date, onOpen, compact }: { meal?: Meal; slot: Slot; date?: string; onOpen?: (m: Meal) => void; compact?: boolean }) {
   const meta = SLOT_META[slot];
-  const { feedbackByMeal, planAt } = useData();
+  const { feedbackByMeal, planAt, meals, ingredients } = useData();
   const [editing, setEditing] = useState<Plan | null>(null);
   const feedback = meal ? feedbackByMeal.get(meal.id) : undefined;
   const plan = planAt(date ?? meal?.date ?? null, slot);
@@ -72,6 +73,7 @@ export function MealRow({ meal, slot, date, onOpen, compact }: { meal?: Meal; sl
     );
   }
   const { head, extras } = splitTitle(meal.title);
+  const carried = meal.done ? [] : carriedOver(meal, meals, ingredients);
   return (
     <button
       type="button"
@@ -89,6 +91,7 @@ export function MealRow({ meal, slot, date, onOpen, compact }: { meal?: Meal; sl
         )}
       </span>
       {plan && <PlanTag plan={plan} className="shrink-0" />}
+      {carried.length > 0 && <CarryOver items={carried} short />}
       {missing && (
         <span className="shrink-0 text-danger" role="img" aria-label={`${missing.names.join("・")}が切れています`}>
           <TriangleAlert className="size-[18px]" />
@@ -116,7 +119,7 @@ export function MealRow({ meal, slot, date, onOpen, compact }: { meal?: Meal; sl
 
 /** 大きく見せる「次のごはん」 */
 export function MealHero({ meal, slot, date, onOpen, label }: { meal?: Meal; slot: Slot; date: string; onOpen: (m: Meal) => void; label: string }) {
-  const { planAt } = useData();
+  const { planAt, meals, ingredients } = useData();
   const plan = planAt(date, slot);
   const [editing, setEditing] = useState<Plan | null>(null);
   if (plan && !meal) {
@@ -145,6 +148,7 @@ export function MealHero({ meal, slot, date, onOpen, label }: { meal?: Meal; slo
     );
   }
   const { head, extras } = splitTitle(meal.title);
+  const carried = meal.done ? [] : carriedOver(meal, meals, ingredients);
   return (
     <button type="button" onClick={() => onOpen(meal)} className="tap card block w-full p-5 text-left">
       <div className="flex items-center gap-2">
@@ -177,7 +181,28 @@ export function MealHero({ meal, slot, date, onOpen, label }: { meal?: Meal; slo
         )}
         {meal.sides && <span className="truncate">副菜：{meal.sides}</span>}
       </div>
+      {carried.length > 0 && <CarryOver items={carried} className="mt-3" />}
     </button>
+  );
+}
+
+/** 翌日の献立でも使う食材の目印。一覧では印だけ、大きい表示では食材名も出す */
+function CarryOver({ items, short, className }: { items: Ingredient[]; short?: boolean; className?: string }) {
+  const names = items.map((i) => shortName(i.name)).join("・");
+  if (short) {
+    return (
+      <span className="shrink-0 text-warn" role="img" aria-label={`${names}は明日も使います`}>
+        <Repeat className="size-[18px]" />
+      </span>
+    );
+  }
+  return (
+    <p className={clsx("flex items-center gap-1.5 rounded-xl bg-warn-soft px-3 py-2 text-[13px] text-ink", className)}>
+      <Repeat className="size-4 shrink-0 text-warn" aria-hidden />
+      <span className="min-w-0">
+        <span className="font-bold">{names}</span>は明日も使います
+      </span>
+    </p>
   );
 }
 
@@ -189,7 +214,7 @@ const MEMO_STYLE = {
 } as const;
 
 export function MealSheet({ meal: opened, onClose }: { meal: Meal | null; onClose: () => void }) {
-  const { ingredientById, mealById, setMealDone } = useData();
+  const { ingredientById, mealById, setMealDone, meals, ingredients: allIngredients } = useData();
   // 開いている間に「作った」やほかの端末・Claude の更新が入っても、最新の内容を出す
   const meal = opened ? (mealById.get(opened.id) ?? opened) : null;
   if (!meal) return null;
@@ -197,6 +222,7 @@ export function MealSheet({ meal: opened, onClose }: { meal: Meal | null; onClos
   const tag = titleTag(meal.title);
   const ingredients = meal.ingredientIds.map((id) => ingredientById.get(id)).filter((x) => x != null);
   const sentences = memoSentences(meal.memo);
+  const carriedIds = new Set(carriedOver(meal, meals, allIngredients).map((i) => i.id));
 
   return (
     <Sheet
@@ -283,6 +309,12 @@ export function MealSheet({ meal: opened, onClose }: { meal: Meal | null; onClos
                     {i.name}
                     {i.amount && <span className="ml-1.5 text-[12px] text-ink-3">{i.amount}</span>}
                   </span>
+                  {carriedIds.has(i.id) && (
+                    <Pill tone="warn">
+                      <Repeat className="size-3" />
+                      明日も使う
+                    </Pill>
+                  )}
                   {i.tripDate && <span className="num shrink-0 text-[12px] text-ink-3">{wd(i.tripDate)}曜に買う</span>}
                   {i.bought ? <Pill tone="ok">購入済み</Pill> : i.estimate != null && <span className="num text-[12px] text-ink-3">{yen(i.estimate)}</span>}
                 </li>
