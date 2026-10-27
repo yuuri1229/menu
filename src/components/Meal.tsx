@@ -12,7 +12,7 @@ import { parseMarkdown } from "@/lib/markdown";
 import { isBento, memoSentences, SLOT_META, splitTitle, titleTag } from "@/lib/meals";
 import { FEEDBACK_TAGS, FEEDBACK_TEXT_MAX, VERDICTS } from "@/lib/types";
 import type { Feedback, FeedbackTag, Ingredient, Meal, Plan, Slot, Verdict } from "@/lib/types";
-import { Blocks } from "./NoteBlocks";
+import { Recipe } from "./Recipe";
 import { NextCheck, useImpact } from "./Impact";
 import { PLAN_ICON, PlanSheet, planState, PlanTag, type PlanPreset } from "./Plan";
 import { Pill, Sheet } from "./ui";
@@ -324,17 +324,7 @@ export function MealSheet({ meal: opened, onClose }: { meal: Meal | null; onClos
           </section>
         )}
 
-        {meal.recipe?.trim() && (
-          <section>
-            <h3 className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-ink-2">
-              <ChefHat className="size-4" />
-              作り方
-            </h3>
-            <div className="text-[14px] leading-relaxed [&_h2]:mt-4 [&_h2]:text-[15px] [&_h3]:mt-3 [&_h3]:text-[14px] [&_h4]:mt-3 [&_h4]:text-[14px]">
-              <Blocks blocks={parseMarkdown(meal.recipe)} />
-            </div>
-          </section>
-        )}
+        {meal.recipe?.trim() && <Recipe key={meal.id} recipe={meal.recipe} />}
 
         <FeedbackSection key={meal.id} meal={meal} />
       </div>
