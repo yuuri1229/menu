@@ -44,7 +44,7 @@ function Shopping() {
 
   const trips = useMemo<Trip[]>(() => {
     const byLabel = groupBy(
-      ingredients.filter((i) => i.trip && i.tripDate),
+      ingredients.filter((i) => i.trip && i.tripDate && !/取りやめ/.test(i.name)),
       (i) => i.trip!,
     );
     return [...byLabel.entries()]
