@@ -6,6 +6,7 @@ import clsx from "clsx";
 import { ChevronRight, Lightbulb, Refrigerator, ShoppingBasket, TriangleAlert, Wallet } from "@/components/icons";
 import { MealHero, MealRow, MealSheet } from "@/components/Meal";
 import { ImpactCard } from "@/components/Impact";
+import { ReceiptBanner } from "@/components/ReceiptBanner";
 import { InstallHint } from "@/components/InstallHint";
 import { PageHeader } from "@/components/PageHeader";
 import { LoadingCards, Progress, SectionTitle } from "@/components/ui";
@@ -67,6 +68,7 @@ export default function TodayPage() {
   return (
     <>
       <PageHeader eyebrow={greeting(hour)} title={`${mdJa(today)}（${wd(today)}）`} />
+      <ReceiptBanner />
       <div className="-mt-1 mb-3 empty:hidden">
         <InstallHint />
       </div>

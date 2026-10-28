@@ -58,3 +58,23 @@ test("数日の予定は帰宅日が出発日より後で、帰宅日に食べ�
   assert.throws(() => validate("plans", { date: "2026-11-05", slots: ["夕食"], endDate: "2026-11-05", endSlots: ["朝食"], kind: "不在" }), /endDate/);
   assert.throws(() => validate("plans", { date: "2026-11-05", slots: ["夕食"], endDate: "2026-11-07", kind: "不在" }), /endSlots/);
 });
+
+test("レシートは品が1つ以上と作成時刻が要り、品の形を検査する", () => {
+  const item = { name: "豚こま切れ", amount: 348, inventoryId: "inv1", grams: 300, bestBefore: "2026-10-31" };
+  const d = validate("receipts", { store: "マルエツ", date: "2026-10-28", total: 348, items: [item], createdAt: "2026-10-28T10:00:00Z" });
+  assert.equal(d.registeredAt, null);
+  assert.throws(() => validate("receipts", { items: [], createdAt: "2026-10-28T10:00:00Z" }), /items/);
+  assert.throws(() => validate("receipts", { items: [item] }), /createdAt: 空にできない/);
+  assert.throws(() => validate("receipts", { items: [{ ...item, grams: -1 }], createdAt: "x" }), /items/);
+  assert.throws(() => validate("receipts", { items: [{ ...item, price: 1 }], createdAt: "x" }), /items/);
+});
+
+test("レシートが指す在庫が無ければ知らせる", () => {
+  const problems = checkRefs({
+    ingredients: [],
+    inventory: [{ id: "inv1" }],
+    receipts: [{ id: "r1", items: [{ name: "卵", inventoryId: "inv1" }, { name: "肉", inventoryId: "gone" }] }],
+  });
+  assert.equal(problems.length, 1);
+  assert.match(problems[0], /gone/);
+});

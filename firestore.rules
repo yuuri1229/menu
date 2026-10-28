@@ -2,7 +2,7 @@ rules_version = '2';
 
 // こんだて帖のデータは、members に登録されたアカウントだけが読める。
 // アプリから書き換えられるのは「作った」「買った」、在庫（登録と、名前・数量・期限などの編集）、買い物リストへの追加と削除、
-// 献立の感想、外食・不在の予定、通知を受け取る自分の端末の登録だけ。
+// 献立の感想、外食・不在の予定、レシートの登録済みの印、通知を受け取る自分の端末の登録だけ。
 // それ以外（献立づくり・レシートの記録など）は Claude が scripts/db.mjs で書く
 // （サービスアカウントはこのルールの対象外）。
 // 変更したら scripts/schema.mjs の MEMBER_WRITABLE も合わせ、`node scripts/db.mjs rules:deploy` で反映する。
@@ -110,6 +110,12 @@ service cloud.firestore {
       allow create: if isMember() && validPlan() && request.resource.data.canceled == false;
       allow update: if isMember() && validPlan();
       allow delete: if isMember() && resource.data.handledAt == null && resource.data.canceled == false;
+    }
+
+    // レシートの登録待ち。Claude が写真から作る。アプリは重さと期限を在庫に登録したあと registeredAt を付けるだけ
+    match /receipts/{id} {
+      allow read: if isMember();
+      allow update: if isMember() && onlyChanges('registeredAt') && request.resource.data.registeredAt is string;
     }
 
     function optStr(d, k) {

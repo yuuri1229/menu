@@ -7,6 +7,7 @@ import clsx from "clsx";
 import { Check, ChevronLeft, ChevronRight, NotebookText, Pencil, Plus, ShoppingBasket, Snowflake, Trash } from "@/components/icons";
 import { Chips, Field, PrimaryButton, inputClass } from "@/components/Form";
 import { useImpact } from "@/components/Impact";
+import { ReceiptBanner } from "@/components/ReceiptBanner";
 import { PageHeader } from "@/components/PageHeader";
 import { Empty, LoadingCards, Pill, Progress, Segmented, Sheet } from "@/components/ui";
 import { useData } from "@/lib/data";
@@ -142,6 +143,7 @@ function Shopping() {
           </button>
         </div>
       </PageHeader>
+      <ReceiptBanner />
 
       <section className="card p-4" aria-label="この回のまとめ">
         <div className="flex items-end justify-between gap-3">

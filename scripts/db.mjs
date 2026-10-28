@@ -11,6 +11,7 @@ import { COLLECTIONS, checkRefs, validate } from "./schema.mjs";
 import { formatFeedback, pendingFeedback } from "./feedback.mjs";
 import { buildReminder, jstDate } from "./notify.mjs";
 import { formatPlan, pendingPlans } from "./plans.mjs";
+import { formatReceipt, pendingReceipts } from "./receipts.mjs";
 
 const HELP = `使い方: node scripts/db.mjs <コマンド> [引数]
 
@@ -28,6 +29,9 @@ const HELP = `使い方: node scripts/db.mjs <コマンド> [引数]
   plans [--all] [--json]           反映待ちの予定（新規・書き直し・取り消し）を日付の順に出す（--all は反映済みも）
   plans:done <id...|--pending>     献立・食材・弁当を組み直した予定に反映済みの印を付ける
                                    （取り消された予定は文書を消す）
+
+レシート（写真から明細と在庫を記録したら receipts に登録待ちを作り、notify で知らせる。重さと期限はアプリで入れる）
+  receipts [--all] [--json]        登録待ち（アプリでまだ重さ・期限を入れていない）のレシートを新しい順に出す
 
 書く（--dry-run で内容だけ確認、--force で参照切れを無視）
   upsert <ファイル|->              {"meals":[{...}], ...} を書き込む。
@@ -324,6 +328,17 @@ try {
           snap.plans.find((p) => p.id === id).canceled ? { type: "delete", c: "plans", id } : { type: "set", c: "plans", id, data: { handledAt }, merge: true },
         ),
       );
+      break;
+    }
+    case "receipts": {
+      const snap = await loadAll();
+      const list = pendingReceipts(snap.receipts, { all: flags.has("--all") });
+      if (flags.has("--json")) console.log(JSON.stringify(list, null, 1));
+      else if (!list.length) console.log(flags.has("--all") ? "レシートはまだありません" : "登録待ちのレシートはありません");
+      else {
+        for (const r of list) console.log(formatReceipt(r));
+        console.log(`\n${list.length}件。アプリで重さと期限を登録すると registeredAt が付く`);
+      }
       break;
     }
     case "upsert": {
