@@ -116,6 +116,28 @@ export interface Plan {
   handledAt: string | null;
 }
 
+/** レシートの1行。grams が数値の品（肉など）はアプリで重さを入れる。bestBefore は期限の初期値（品名からの目安）。scripts/schema.mjs と同じ */
+export interface ReceiptItem {
+  name: string;
+  amount?: number | null;
+  /** 在庫の id（重さと期限の登録先） */
+  inventoryId?: string | null;
+  grams?: number | null;
+  bestBefore?: string | null;
+}
+
+/** レシートの写真から Claude が作る、重さと期限の登録待ち */
+export interface Receipt {
+  id: string;
+  store: string | null;
+  date: string | null;
+  total: number | null;
+  items: ReceiptItem[];
+  createdAt: string | null;
+  /** アプリで重さと期限を在庫に登録した時刻（まだなら null） */
+  registeredAt: string | null;
+}
+
 export interface RichText {
   t: string;
   b?: boolean;
@@ -160,4 +182,5 @@ export interface Snapshot {
   notes: Note[];
   feedback: Feedback[];
   plans: Plan[];
+  receipts: Receipt[];
 }

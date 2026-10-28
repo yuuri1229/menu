@@ -34,6 +34,7 @@ node scripts/db.mjs help
 | `inventory` | `name` `category` `storage` `status`（十分/残りわずか/切れた/要確認） `remaining` `memo` `seafood`（問題なし/要確認/NG） `bestBefore` `purchasedAt` | |
 | `notes` | `title` `icon` `kind`（week/rules/page） `start` `end` `markdown` `editedAt` | 週のメモは id を `week-YYYY-MM-DD`（月曜の日付）、`kind: "week"`。食材のレシピ候補などは `kind: "page"`。好みの記録は id `preferences`、`kind: "page"`。本文は Markdown（見出し・箇条書き・`- [ ]`・表） |
 | `plans` | `date` `slots`（朝食/昼食/夕食の配列） `endDate` `endSlots` `kind`（外食/不在） `memo` `canceled` `uid` `updatedAt` `handledAt` | アプリの献立タブで登録する外食・家にいない予定。数日家を空けるときは `endDate`（帰宅日）を付け、`date` の日は `slots`、`endDate` の日は `endSlots`、その間の日は3食とも家で食べない（例：11/5 昼食・夕食〜11/7 朝食・昼食 なら 11/5 朝と 11/7 夜は家で食べる）。Claude は書き換えず、献立を組み直したら `plans:done` で `handledAt` を付けるだけ（取り消し `canceled: true` の予定は `plans:done` で消える）。書き直されると `handledAt` が空に戻る |
+| `receipts` | `store` `date` `total` `items`（`name` `amount` `inventoryId` `grams` `bestBefore`） `createdAt` `registeredAt` | レシートの写真から作る「重さと期限の登録待ち」。`grams` に数値を入れた品（肉など）はアプリで重さを入れる。`bestBefore` は品名からの目安。`inventoryId` は登録先の在庫。Claude は `registeredAt` を書かない（アプリが付ける） |
 | `feedback` | `mealId` `mealTitle` `date` `slot` `verdict`（好み/ふつう/合わない） `tags` `text` `uid` `updatedAt` `reflectedAt` | アプリの献立シートから届く感想。id は献立の id（1献立1件、送り直すと上書きされ `reflectedAt` が空に戻る）。Claude は書き換えず、まとめたら `feedback:done` で `reflectedAt` を付けるだけ |
 
 新しい文書は `id` を付けずに渡すと CLI が作り、作った id を表示します。既存の文書は `id` と変える項目だけ渡せば部分更新になります。
@@ -60,6 +61,12 @@ node scripts/db.mjs help
 1. 1品1件で `purchases` に入れ、対応する食材の id を `ingredientIds` に入れる。外税のレシートは税込に直す。
 2. 買った食材の `bought` を `true` に、在庫に追加・更新して `status: "十分"` にする（新しい市販品は魚介の確認を `seafood` に）。
 3. その週のノートの「実績と評価」に、予算との比較と対策を追記する（`markdown` を丸ごと渡して更新）。
+
+**レシートの写真を受け取ったとき（写真をこのプロジェクトに送ってもらう）**
+1. 写真から店・日付・品名・税込の金額・合計を読む。読みにくい所はユーザーに聞く。
+2. 上の「レシートの記録」の手順で `purchases`・食材の `bought`・在庫を記録する（在庫の `id` を控える）。
+3. `receipts` に1件作る（`createdAt` は今の時刻、`items` は買った品ごとに `name` `amount` と、在庫の `inventoryId`）。肉・魚介など重さで管理する品は `grams` に内容量の目安を、期限が大事な品（肉・卵・豆腐・乳製品・葉物など）は `bestBefore` に品名からの目安を入れる。日持ちする物は入れない。
+4. `node scripts/db.mjs notify "レシートを登録しました" "重さと期限を入れてください" --url "receipts/?id=<id>"` で知らせる。ユーザーが通知から開いて入れると、アプリが在庫の残量・期限を更新して `registeredAt` を付ける。`node scripts/db.mjs receipts` で登録待ちが見える。
 
 **献立の感想を反映する（土曜のルーティンの最初、または「感想を反映して」）**
 1. `node scripts/db.mjs feedback` で反映待ちの感想を読む（献立名・評価・タグ・本文・食材が出る）。

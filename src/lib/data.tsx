@@ -7,7 +7,7 @@ import { getDb, getFirebaseAuth } from "./firebase";
 import { parseMarkdown } from "./markdown";
 import { planCovers } from "./plans";
 import { sampleSnapshot } from "./sample";
-import type { Feedback, FeedbackTag, Ingredient, InventoryItem, Meal, Note, Plan, Purchase, Slot, Snapshot, StockStatus, Verdict } from "./types";
+import type { Feedback, FeedbackTag, Ingredient, InventoryItem, Meal, Note, Plan, Purchase, Receipt, Slot, Snapshot, StockStatus, Verdict } from "./types";
 
 type Status = "loading" | "ready" | "error";
 
@@ -38,6 +38,17 @@ interface DataApi extends Snapshot {
   savePlan: (id: string | null, fields: PlanFields) => void;
   /** 予定がなくなった。献立にまだ反映していなければ消し、反映済みなら取り消しとして Claude に献立を戻してもらう */
   cancelPlan: (plan: Plan) => void;
+  /** 重さと期限の登録待ちのレシート（新しい順） */
+  pendingReceipts: Receipt[];
+  /** レシートの重さと期限を在庫に書き、登録済みの印を付ける */
+  registerReceipt: (receipt: Receipt, entries: ReceiptEntry[]) => void;
+}
+
+export interface ReceiptEntry {
+  inventoryId: string;
+  /** 重さ（g）。入れない品は null で、在庫の残量は変えない */
+  grams: number | null;
+  bestBefore: string | null;
 }
 
 export type PlanFields = Pick<Plan, "date" | "slots" | "endDate" | "endSlots" | "kind" | "memo">;
@@ -48,11 +59,11 @@ export type IngredientFields = Omit<Ingredient, "id" | "actual" | "mealIds">;
 
 const DataContext = createContext<DataApi | null>(null);
 
-const COLLECTIONS = ["meals", "ingredients", "purchases", "inventory", "notes", "feedback", "plans"] as const;
+const COLLECTIONS = ["meals", "ingredients", "purchases", "inventory", "notes", "feedback", "plans", "receipts"] as const;
 type Name = (typeof COLLECTIONS)[number];
 type Raw = { syncedAt: string | null } & Record<Name, Record<string, unknown>[]>;
 
-const EMPTY: Raw = { syncedAt: null, meals: [], ingredients: [], purchases: [], inventory: [], notes: [], feedback: [], plans: [] };
+const EMPTY: Raw = { syncedAt: null, meals: [], ingredients: [], purchases: [], inventory: [], notes: [], feedback: [], plans: [], receipts: [] };
 
 /** 保存されていない項目（食材の実績金額・使う献立、ノートの表示用ブロック）を計算して足す */
 function derive(raw: Raw): Snapshot {
@@ -77,6 +88,7 @@ function derive(raw: Raw): Snapshot {
     feedback: raw.feedback as unknown as Feedback[],
     // 数日の予定ができる前の文書は endDate・endSlots を持たない
     plans: (raw.plans as unknown as Plan[]).map((p) => ({ ...p, endDate: p.endDate ?? null, endSlots: p.endSlots ?? [] })),
+    receipts: raw.receipts as unknown as Receipt[],
   };
 }
 
@@ -107,7 +119,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           setLoaded((l) => new Set(l).add(name));
         },
         // 感想や予定が読めなくても（ルールの反映前など）献立や買い物は使えるようにする
-        name === "feedback" || name === "plans" ? () => setLoaded((l) => new Set(l).add(name)) : onError,
+        name === "feedback" || name === "plans" || name === "receipts" ? () => setLoaded((l) => new Set(l).add(name)) : onError,
       ),
     );
     unsubs.push(
@@ -244,6 +256,36 @@ export function DataProvider({ children }: { children: ReactNode }) {
     ).catch(onWriteError("予定"));
   }, [onWriteError]);
 
+  const registerReceipt = useCallback<DataApi["registerReceipt"]>((receipt, entries) => {
+    const registeredAt = new Date().toISOString();
+    if (DEMO) {
+      setRaw((s) => ({
+        ...s,
+        inventory: s.inventory.map((d) => {
+          const e = entries.find((x) => x.inventoryId === d.id);
+          return e ? { ...d, ...(e.grams != null && { remaining: `${e.grams}g` }), bestBefore: e.bestBefore, status: "十分" } : d;
+        }),
+        receipts: s.receipts.map((r) => (r.id === receipt.id ? { ...r, registeredAt } : r)),
+      }));
+      return;
+    }
+    const db = getDb();
+    const fail = onWriteError("重さと期限");
+    // 在庫を全部書いてから印を付ける（途中で失敗したら印は付かず、もう一度登録できる）
+    Promise.all(
+      entries.map((e) =>
+        updateDoc(doc(db, "inventory", e.inventoryId), {
+          ...(e.grams != null && { remaining: `${e.grams}g` }),
+          bestBefore: e.bestBefore,
+          purchasedAt: receipt.date,
+          status: "十分",
+        }),
+      ),
+    )
+      .then(() => updateDoc(doc(db, "receipts", receipt.id), { registeredAt }))
+      .catch(fail);
+  }, [onWriteError]);
+
   const value = useMemo<DataApi>(() => {
     const snap = derive(raw);
     const status: Status = error ? "error" : DEMO || loaded.size === COLLECTIONS.length ? "ready" : "loading";
@@ -268,8 +310,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
       planAt: (date, slot) => (date && slot ? (snap.plans.find((p) => !p.canceled && planCovers(p, date, slot)) ?? null) : null),
       savePlan,
       cancelPlan,
+      pendingReceipts: snap.receipts
+        .filter((r) => !r.registeredAt)
+        .sort((a, b) => (b.date ?? "").localeCompare(a.date ?? "") || (b.createdAt ?? "").localeCompare(a.createdAt ?? "")),
+      registerReceipt,
     };
-  }, [raw, loaded, error, writeError, write, sendFeedback, saveInventory, removeInventory, addIngredient, removeIngredient, savePlan, cancelPlan]);
+  }, [raw, loaded, error, writeError, write, sendFeedback, saveInventory, removeInventory, addIngredient, removeIngredient, savePlan, cancelPlan, registerReceipt]);
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 }
@@ -280,4 +326,4 @@ export function useData() {
   return ctx;
 }
 
-export type { Feedback, Ingredient, InventoryItem, Meal, Note, Plan, Purchase };
+export type { Feedback, Ingredient, InventoryItem, Meal, Note, Plan, Purchase, Receipt };
