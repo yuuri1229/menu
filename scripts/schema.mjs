@@ -36,6 +36,8 @@ export const SCHEMA = {
     done: "bool",
     prepAhead: "bool",
     ingredientIds: "ids",
+    // アプリが「作った」で在庫から引いた材料と引けなかった材料。Claude は書かない（取り消しで在庫に戻すための記録）
+    consumed: "consumed",
   },
   ingredients: {
     name: "string",
@@ -123,13 +125,15 @@ export const SCHEMA = {
 };
 
 /** レシート1行の項目。grams が数値の品（肉など）はアプリで重さを入れる。bestBefore は期限の初期値（品名からの目安） */
+export const CONSUMED_KEYS = ["name", "inventoryId", "qty", "unit", "before", "prevStatus", "reason"];
+
 export const RECEIPT_ITEM_KEYS = ["name", "amount", "inventoryId", "grams", "bestBefore"];
 
 export const COLLECTIONS = Object.keys(SCHEMA);
 
 /** アプリ（ログインしたメンバー）が書き換えてよい項目。firestore.rules と同じにする */
 export const MEMBER_WRITABLE = {
-  meals: ["done"],
+  meals: ["done", "consumed"],
   // 買い物リストは「買った」に加えて、項目の追加と（献立・明細が指していなければ）削除
   ingredients: ["bought"],
   // 在庫は新規登録・削除と、魚介の確認（seafood）以外の項目の編集
@@ -179,6 +183,24 @@ function checkValue(type, v) {
         );
       return ok ? null : `{${RECEIPT_ITEM_KEYS.join(", ")}} の配列（name は必須、grams は正の数、bestBefore は YYYY-MM-DD）`;
     }
+    case "consumed": {
+      const ok =
+        Array.isArray(v) &&
+        v.every(
+          (x) =>
+            x &&
+            typeof x === "object" &&
+            Object.keys(x).every((k) => CONSUMED_KEYS.includes(k)) &&
+            typeof x.name === "string" &&
+            (x.inventoryId == null || typeof x.inventoryId === "string") &&
+            (x.qty == null || Number.isFinite(x.qty)) &&
+            (x.unit == null || typeof x.unit === "string") &&
+            (x.before == null || typeof x.before === "string") &&
+            (x.prevStatus == null || STOCK.includes(x.prevStatus)) &&
+            (x.reason == null || typeof x.reason === "string"),
+        );
+      return ok ? null : `{${CONSUMED_KEYS.join(", ")}} の配列`;
+    }
     case "ids":
       return Array.isArray(v) && v.every((x) => typeof x === "string" && x) ? null : "id の配列";
     default:
@@ -189,7 +211,7 @@ function checkValue(type, v) {
 function defaultFor(type) {
   if (type?.many) return [];
   if (Array.isArray(type)) return null;
-  return { string: "", "string?": null, "number?": null, bool: false, "date?": null, ids: [], receiptItems: [] }[type];
+  return { string: "", "string?": null, "number?": null, bool: false, "date?": null, ids: [], receiptItems: [], consumed: [] }[type];
 }
 
 /**

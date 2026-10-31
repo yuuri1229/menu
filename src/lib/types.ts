@@ -3,6 +3,21 @@
 export type Slot = "朝食" | "昼食" | "夕食";
 export const SLOTS: Slot[] = ["朝食", "昼食", "夕食"];
 
+/** 引いた物（inventoryId あり）か、引けなかった物（inventoryId なし・reason あり）。Firestore の meals.consumed と同じ形 */
+export interface ConsumedEntry {
+  name: string;
+  inventoryId: string | null;
+  /** 引いた分量（引けなかった物は null）。単位は在庫の単位 */
+  qty: number | null;
+  unit: string | null;
+  /** 引く前の在庫（文字）。取り消しで元に戻すときの確認にも使う */
+  before: string | null;
+  /** 引いた結果、在庫の状態を「切れた」にしたとき、その前の状態 */
+  prevStatus: StockStatus | null;
+  /** 引けなかった理由 */
+  reason: string | null;
+}
+
 export interface Meal {
   id: string;
   title: string;
@@ -18,6 +33,8 @@ export interface Meal {
   done: boolean;
   prepAhead: boolean;
   ingredientIds: string[];
+  /** 「作った」で在庫から引いた材料と、引けなかった材料（古い文書には無い） */
+  consumed?: ConsumedEntry[];
 }
 
 export interface Ingredient {
