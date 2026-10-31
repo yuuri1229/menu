@@ -1,7 +1,7 @@
 rules_version = '2';
 
 // こんだて帖のデータは、members に登録されたアカウントだけが読める。
-// アプリから書き換えられるのは「作った」「買った」、在庫（登録と、名前・数量・期限などの編集）、買い物リストへの追加と削除、
+// アプリから書き換えられるのは「作った」（材料を在庫から引く）「買った」、在庫（登録と、名前・数量・期限などの編集）、買い物リストへの追加と削除、
 // 献立の感想、外食・不在の予定、レシートの登録済みの印、通知を受け取る自分の端末の登録だけ。
 // それ以外（献立づくり・レシートの記録など）は Claude が scripts/db.mjs で書く
 // （サービスアカウントはこのルールの対象外）。
@@ -57,7 +57,11 @@ service cloud.firestore {
 
     match /meals/{id} {
       allow read: if isMember();
-      allow update: if isMember() && onlyChanges('done') && request.resource.data.done is bool;
+      // 「作った」と、そのとき在庫から引いた材料の記録（consumed）。在庫の変更は同じ書き込みで inventory に行う
+      allow update: if isMember()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['done', 'consumed'])
+        && request.resource.data.done is bool
+        && (!('consumed' in request.resource.data) || (request.resource.data.consumed is list && request.resource.data.consumed.size() <= 60));
     }
 
     // 献立の感想。id は献立の id（1献立1件、送り直すと上書き）。項目と選択肢は scripts/schema.mjs と同じ。

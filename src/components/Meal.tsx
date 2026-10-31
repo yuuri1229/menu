@@ -2,7 +2,7 @@
 
 import clsx from "clsx";
 import { useState } from "react";
-import { CalendarEdit, Check, ChefHat, TriangleAlert, CircleCheck, Clock, Lightbulb, MessageCircleHeart, Minus, Pencil, Repeat, ShoppingBasket, Sparkles, ThumbsDown, ThumbsUp, Bento } from "@/components/icons";
+import { CalendarEdit, Check, ChefHat, TriangleAlert, CircleCheck, Clock, Lightbulb, MessageCircleHeart, Minus, Pencil, Repeat, ShoppingBasket, Sparkles, ThumbsDown, ThumbsUp, Bento, Refrigerator } from "@/components/icons";
 import { useData } from "@/lib/data";
 import { carriedOver, shortName } from "@/lib/impact";
 import { useNow } from "@/lib/now";
@@ -207,6 +207,52 @@ function CarryOver({ items, short, className }: { items: Ingredient[]; short?: b
   );
 }
 
+/** 「作った」で在庫から引いた材料と、引けなかった材料（在庫のページで直す目安） */
+function ConsumedSection({ meal }: { meal: Meal }) {
+  const all = meal.consumed ?? [];
+  if (!meal.done || all.length === 0) return null;
+  const used = all.filter((e) => e.inventoryId);
+  const left = all.filter((e) => !e.inventoryId);
+  return (
+    <section>
+      <h3 className="mb-2 flex items-center gap-1.5 text-[13px] font-bold text-ink-2">
+        <Refrigerator className="size-4" />
+        在庫から引いた材料
+      </h3>
+      {used.length > 0 ? (
+        <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line">
+          {used.map((e) => (
+            <li key={e.inventoryId} className="flex items-center gap-3 px-3.5 py-2.5 text-[14px]">
+              <span className="min-w-0 flex-1 truncate">{e.name}</span>
+              <span className="num shrink-0 text-[13px] text-ink-2">
+                {e.before} から {e.qty}
+                {e.unit}
+              </span>
+              {e.prevStatus && <Pill tone="warn">切れた</Pill>}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="rounded-xl bg-surface-2 px-3 py-2.5 text-[13px] text-ink-2">引ける材料がありませんでした</p>
+      )}
+      {left.length > 0 && (
+        <div className="mt-2 rounded-xl bg-surface-2 px-3 py-2.5 text-[13px] text-ink-2">
+          <p className="font-bold">引けなかった材料（在庫のページで確認してください）</p>
+          <ul className="mt-1 space-y-0.5">
+            {left.map((e, i) => (
+              <li key={i}>
+                {e.name}
+                <span className="ml-1.5 text-[12px] text-ink-3">{e.reason}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      <p className="mt-2 text-[12px] text-ink-3">「作った」を取り消すと、引いた分は在庫に戻ります</p>
+    </section>
+  );
+}
+
 const MEMO_STYLE = {
   result: { icon: Sparkles, box: "bg-accent-soft text-ink", label: "実績", iconClass: "text-accent-text" },
   change: { icon: Pencil, box: "bg-surface-2 text-ink-2", label: "変更", iconClass: "text-ink-3" },
@@ -323,6 +369,8 @@ export function MealSheet({ meal: opened, onClose }: { meal: Meal | null; onClos
             </ul>
           </section>
         )}
+
+        <ConsumedSection meal={meal} />
 
         {meal.recipe?.trim() && <Recipe key={meal.id} recipe={meal.recipe} />}
 

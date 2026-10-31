@@ -1,7 +1,8 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { addDoc, collection, deleteDoc, doc, onSnapshot, setDoc, updateDoc } from "firebase/firestore";
+import { addDoc, collection, deleteDoc, doc, onSnapshot, setDoc, updateDoc, writeBatch } from "firebase/firestore";
+import { planConsume, planRestore, type StockWrite } from "./consume";
 import { DEMO } from "./config";
 import { getDb, getFirebaseAuth } from "./firebase";
 import { parseMarkdown } from "./markdown";
@@ -20,6 +21,7 @@ interface DataApi extends Snapshot {
   demo: boolean;
   mealById: Map<string, Meal>;
   ingredientById: Map<string, Ingredient>;
+  /** 「作った」の印を付ける／外す。付けるときはレシピの材料を在庫から引き、外すときは引いた分を戻す */
   setMealDone: (id: string, done: boolean) => void;
   setBought: (id: string, bought: boolean) => void;
   setStock: (id: string, status: StockStatus) => void;
@@ -156,6 +158,41 @@ export function DataProvider({ children }: { children: ReactNode }) {
         ? `${what}を保存する権限がありません。Firestore のルールが反映されているか確認してください。`
         : `${what}を保存できませんでした。通信の良いところでもう一度試してください。`,
     ), []);
+
+  /**
+   * 「作った」を付けると、レシピの材料のうち分量を在庫の単位で引ける物を在庫から引き、引いた物と引けなかった物を
+   * 献立の consumed に残す（取り消しで戻すため、二重に引かないための印も兼ねる）。献立と在庫は1回の書き込みで一緒に変える。
+   */
+  const setMealDone = useCallback<DataApi["setMealDone"]>((id, done) => {
+    const meal = (raw.meals as unknown as Meal[]).find((m) => m.id === id);
+    if (!meal || meal.done === done) return;
+    const inventory = raw.inventory as unknown as InventoryItem[];
+    let writes: StockWrite[] = [];
+    let consumed: Meal["consumed"] = [];
+    if (done) {
+      // すでに引いた記録があれば、もう引かない
+      if (meal.consumed?.length) consumed = meal.consumed;
+      else ({ entries: consumed, writes } = planConsume(meal, inventory));
+    } else {
+      writes = planRestore(meal.consumed ?? [], inventory);
+    }
+    if (DEMO) {
+      setRaw((s) => ({
+        ...s,
+        meals: s.meals.map((d) => (d.id === id ? { ...d, done, consumed } : d)),
+        inventory: s.inventory.map((d) => {
+          const w = writes.find((x) => x.id === d.id);
+          return w ? { ...d, remaining: w.remaining, ...(w.status && { status: w.status }) } : d;
+        }),
+      }));
+      return;
+    }
+    const db = getDb();
+    const batch = writeBatch(db);
+    batch.update(doc(db, "meals", id), { done, consumed });
+    for (const w of writes) batch.update(doc(db, "inventory", w.id), { remaining: w.remaining, ...(w.status && { status: w.status }) });
+    batch.commit().catch(onWriteError("「作った」と在庫"));
+  }, [raw.meals, raw.inventory, onWriteError]);
 
   const saveInventory = useCallback<DataApi["saveInventory"]>((id, fields) => {
     if (DEMO) {
@@ -298,7 +335,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       demo: DEMO,
       mealById: new Map(snap.meals.map((m) => [m.id, m])),
       ingredientById: new Map(snap.ingredients.map((i) => [i.id, i])),
-      setMealDone: (id, done) => write("meals", id, "done", done),
+      setMealDone,
       setBought: (id, bought) => write("ingredients", id, "bought", bought),
       setStock: (id, status) => write("inventory", id, "status", status),
       feedbackByMeal: new Map(snap.feedback.map((f) => [f.mealId ?? f.id, f])),
@@ -315,7 +352,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         .sort((a, b) => (b.date ?? "").localeCompare(a.date ?? "") || (b.createdAt ?? "").localeCompare(a.createdAt ?? "")),
       registerReceipt,
     };
-  }, [raw, loaded, error, writeError, write, sendFeedback, saveInventory, removeInventory, addIngredient, removeIngredient, savePlan, cancelPlan, registerReceipt]);
+  }, [raw, loaded, error, writeError, write, setMealDone, sendFeedback, saveInventory, removeInventory, addIngredient, removeIngredient, savePlan, cancelPlan, registerReceipt]);
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 }

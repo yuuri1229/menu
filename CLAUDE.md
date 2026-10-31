@@ -28,10 +28,10 @@ node scripts/db.mjs help
 
 | コレクション | 主な項目 | 書き方の決まり |
 | --- | --- | --- |
-| `meals` | `title` `date` `slot`（朝食/昼食/夕食） `main` `sides` `memo` `recipe` `genre` `minutes` `done` `prepAhead` `ingredientIds` | `recipe` は Markdown で「## 材料（分量つき）」「## 作り方」（番号付き）「## ポイント」。`title` の「＋」で主菜と副菜を分けて表示。食べた結果は `memo` に「【実績】…」、変更は「10/14変更：…」で始める。炊飯・予約・取り分け・解凍などの段取りは文に入れると「段取りメモ」に出る |
+| `meals` | `title` `date` `slot`（朝食/昼食/夕食） `main` `sides` `memo` `recipe` `genre` `minutes` `done` `prepAhead` `ingredientIds` `consumed` | `recipe` は Markdown で「## 材料（分量つき）」「## 作り方」（番号付き）「## ポイント」。`title` の「＋」で主菜と副菜を分けて表示。食べた結果は `memo` に「【実績】…」、変更は「10/14変更：…」で始める。炊飯・予約・取り分け・解凍などの段取りは文に入れると「段取りメモ」に出る。`consumed` はアプリが書く（Claude は書かない）：アプリで「作った」が押されると、レシピの材料のうち在庫と同じ単位（g・個など）で書かれた物が在庫の `remaining` から自動で引かれ、引いた物・引けなかった物がここに残る（取り消すと戻る）。「作った」を押していない献立は材料が余っている扱いで、在庫は引かれない |
 | `ingredients` | `name` `category` `storage` `trip` `tripDate` `amount` `estimate` `bought` `memo` | `trip` は「① 10/12(月)」の形、`tripDate` はその日付。同じ回の食材は同じ `trip` にする。実績金額は明細から自動で計算されるので書かない |
 | `purchases` | `name` `amount`（税込） `store` `trip` `tripDate` `category`（食材/調味料・消耗品） `date` `carryOver` `memo` `receiptNo` `ingredientIds` | 米は `category: "食材"` で記録し、名前に米の銘柄を入れる（週予算から自動で除く） |
-| `inventory` | `name` `category` `storage` `status`（十分/残りわずか/切れた/要確認） `remaining` `memo` `seafood`（問題なし/要確認/NG） `bestBefore` `purchasedAt` | |
+| `inventory` | `name` `category` `storage` `status`（十分/残りわずか/切れた/要確認） `remaining` `memo` `seafood`（問題なし/要確認/NG） `bestBefore` `purchasedAt` | `remaining` は「200g」「3個」のように数と単位（個・g・本・袋・パック・枚・ml）だけで書くと、「作った」で自動で引ける。文章を入れると引けない（メモは `memo` へ） |
 | `notes` | `title` `icon` `kind`（week/rules/page） `start` `end` `markdown` `editedAt` | 週のメモは id を `week-YYYY-MM-DD`（月曜の日付）、`kind: "week"`。食材のレシピ候補などは `kind: "page"`。好みの記録は id `preferences`、`kind: "page"`。本文は Markdown（見出し・箇条書き・`- [ ]`・表） |
 | `plans` | `date` `slots`（朝食/昼食/夕食の配列） `endDate` `endSlots` `kind`（外食/不在） `memo` `canceled` `uid` `updatedAt` `handledAt` | アプリの献立タブで登録する外食・家にいない予定。数日家を空けるときは `endDate`（帰宅日）を付け、`date` の日は `slots`、`endDate` の日は `endSlots`、その間の日は3食とも家で食べない（例：11/5 昼食・夕食〜11/7 朝食・昼食 なら 11/5 朝と 11/7 夜は家で食べる）。Claude は書き換えず、献立を組み直したら `plans:done` で `handledAt` を付けるだけ（取り消し `canceled: true` の予定は `plans:done` で消える）。書き直されると `handledAt` が空に戻る |
 | `receipts` | `store` `date` `total` `items`（`name` `amount` `inventoryId` `grams` `bestBefore`） `createdAt` `registeredAt` | レシートの写真から作る「重さと期限の登録待ち」。`grams` に数値を入れた品（肉など）はアプリで重さを入れる。`bestBefore` は品名からの目安。`inventoryId` は登録先の在庫。Claude は `registeredAt` を書かない（アプリが付ける） |
