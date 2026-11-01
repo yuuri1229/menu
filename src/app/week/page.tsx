@@ -69,7 +69,7 @@ function Week() {
   // 献立がある週の範囲（前後の移動の上限に使う）
   const dated = meals.map((m) => m.date).filter((d): d is string => !!d).sort();
   const minWeek = dated.length ? weekStart(dated[0]) : thisWeek;
-  // 来週の予定は献立ができる前（日曜20時より前）に登録したいので、来週までは進める
+  // 来週の予定は献立ができる前（日曜23時30分より前）に登録したいので、来週までは進める
   const maxWeek = [dated.length ? weekStart(dated[dated.length - 1]) : thisWeek, addDays(thisWeek, 7), ...plans.map((p) => weekStart(planEnd(p)))].sort().pop()!;
 
   useEffect(() => {
@@ -168,7 +168,7 @@ function Week() {
         <LoadingCards count={4} />
       ) : weekMeals.length === 0 && weekPlans.length === 0 ? (
         <Empty icon={<CalendarDays className="size-6" />} title="この週の献立はありません">
-          毎週日曜の20時に、Claude が翌週分を自動で作ります。外食や家にいない予定は、先に「予定」から登録してください。
+          毎週日曜の23時30分に、Claude が翌週分を自動で作ります。外食や家にいない予定は、先に「予定」から登録してください。
         </Empty>
       ) : (
         <div className="grid gap-3 lg:grid-cols-2">

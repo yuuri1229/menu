@@ -57,7 +57,13 @@ function Pantry() {
       .sort((a, b) => (STATUS_RANK[a.status ?? ""] ?? 4) - (STATUS_RANK[b.status ?? ""] ?? 4) || a.name.localeCompare(b.name, "ja"));
   }, [inventory, q, filter]);
 
-  const groups = [...groupBy(list, (i) => i.category ?? "その他").entries()];
+  const order = categoryOptions(inventory.map((i) => i.category));
+  const groups = [...groupBy(list, (i) => i.category ?? "その他").entries()].sort((a, b) => order.indexOf(a[0]) - order.indexOf(b[0]));
+  const summary = {
+    out: inventory.filter((i) => i.status === "切れた").length,
+    low: inventory.filter((i) => i.status === "残りわずか").length,
+    soon: inventory.filter((i) => i.bestBefore && diffDays(i.bestBefore, today) <= 3).length,
+  };
 
   return (
     <>
@@ -110,10 +116,29 @@ function Pantry() {
           {filter === "action" && !q ? "買い足しや確認が必要な物はありません。" : null}
         </Empty>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-5">
+          {filter === "all" && !q && (
+            <dl className="grid grid-cols-3 gap-2" aria-label="在庫のまとめ">
+              {(
+                [
+                  ["切れた", summary.out, "text-danger"],
+                  ["残りわずか", summary.low, "text-warn"],
+                  ["期限が近い", summary.soon, "text-warn"],
+                ] as const
+              ).map(([label, n, tone]) => (
+                <div key={label} className="card px-3 py-2.5 text-center">
+                  <dd className={clsx("num text-[22px] leading-none font-bold", n > 0 ? tone : "text-ink-3")}>{n}</dd>
+                  <dt className="mt-1 text-[12px] text-ink-2">{label}</dt>
+                </div>
+              ))}
+            </dl>
+          )}
           {groups.map(([category, items]) => (
             <section key={category} aria-label={category}>
-              <h2 className="mb-1.5 px-1 text-[13px] font-bold text-ink-2">{category}</h2>
+              <h2 className="mb-2 flex items-baseline gap-2 px-1">
+                <span className="text-[15px] font-bold">{category}</span>
+                <span className="num text-[12px] text-ink-3">{items.length}件</span>
+              </h2>
               <ul className="card divide-y divide-line overflow-hidden">
                 {items.map((i) => {
                   const days = i.bestBefore ? diffDays(i.bestBefore, today) : null;
@@ -123,18 +148,11 @@ function Pantry() {
                         type="button"
                         onClick={() => setEditing(i.id)}
                         aria-label={`${i.name}の在庫を編集する`}
-                        className="tap flex w-full items-start gap-3 px-4 py-3 text-left active:bg-surface-2"
+                        className="tap flex w-full items-center gap-3 px-4 py-3.5 text-left active:bg-surface-2"
                       >
-                        <span
-                          className={clsx(
-                            "mt-2 size-2.5 shrink-0 rounded-full",
-                            i.status === "切れた" ? "bg-danger" : i.status === "残りわずか" ? "bg-warn" : i.status === "十分" ? "bg-ok" : "bg-ink-3",
-                          )}
-                          aria-hidden
-                        />
                         <span className="block min-w-0 flex-1">
-                          <span className="flex flex-wrap items-center gap-1.5">
-                            <span className="text-[15px] font-medium">{i.name}</span>
+                          <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                            <span className="text-[16px] leading-snug font-medium">{i.name}</span>
                             {i.storage === "冷蔵" && <Snowflake className="size-3.5 text-night" aria-label="冷蔵" />}
                             {i.seafood === "NG" && (
                               <Pill tone="danger">
@@ -149,21 +167,24 @@ function Pantry() {
                               </Pill>
                             )}
                           </span>
-                          {(i.remaining || i.memo) && (
-                            <span className="mt-0.5 block text-[12px] leading-snug text-ink-3">{[i.remaining, i.memo].filter(Boolean).join("・")}</span>
-                          )}
+                          {i.memo && <span className="mt-0.5 block text-[13px] leading-snug text-ink-3">{i.memo}</span>}
                           {days != null && (
-                            <span className={clsx("num mt-0.5 flex items-center gap-1 text-[12px]", days <= 1 ? "text-danger" : days <= 3 ? "text-warn" : "text-ink-3")}>
-                              {days <= 3 && <TriangleAlert className="size-3" />}
-                              賞味期限 {mdw(i.bestBefore!)}
-                              {days < 0 ? "（切れています）" : days === 0 ? "（今日まで）" : days <= 3 ? `（あと${days}日）` : ""}
+                            <span className={clsx("num mt-1 flex items-center gap-1 text-[13px]", days <= 1 ? "font-medium text-danger" : days <= 3 ? "font-medium text-warn" : "text-ink-3")}>
+                              {days <= 3 && <TriangleAlert className="size-3.5" />}
+                              期限 {mdw(i.bestBefore!)}
+                              {days < 0 ? "（過ぎています）" : days === 0 ? "（今日まで）" : days <= 3 ? `（あと${days}日）` : ""}
                             </span>
                           )}
                         </span>
-                        <span className="flex shrink-0 items-center gap-0.5">
-                          {i.status && <Pill tone={STATUS_TONE[i.status]}>{i.status}</Pill>}
-                          <ChevronRight className="size-4 text-ink-3" />
+                        <span className="flex shrink-0 flex-col items-end gap-1">
+                          {i.remaining && <span className="num text-[16px] font-bold">{i.remaining}</span>}
+                          {i.status && i.status !== "十分" ? (
+                            <Pill tone={STATUS_TONE[i.status]}>{i.status}</Pill>
+                          ) : (
+                            !i.remaining && <span className="text-[13px] text-ink-3">{i.status}</span>
+                          )}
                         </span>
+                        <ChevronRight className="size-4 shrink-0 text-ink-3" />
                       </button>
                     </li>
                   );
