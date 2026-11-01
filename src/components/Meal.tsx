@@ -143,7 +143,7 @@ export function MealHero({ meal, slot, date, onOpen, label }: { meal?: Meal; slo
       <div className="card p-5">
         <p className="text-[13px] font-medium text-ink-3">{label}</p>
         <p className="mt-2 font-display text-xl font-bold text-ink-2">まだ献立がありません</p>
-        <p className="mt-1 text-sm text-ink-3">日曜の20時に翌週分が自動で作られます</p>
+        <p className="mt-1 text-sm text-ink-3">日曜の23時30分に翌週分が自動で作られます</p>
       </div>
     );
   }
