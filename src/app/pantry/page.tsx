@@ -150,7 +150,7 @@ function Pantry() {
                         aria-label={`${i.name}の在庫を編集する`}
                         className="tap flex w-full items-center gap-3 px-4 py-3.5 text-left active:bg-surface-2"
                       >
-                        <span className="block min-w-0 flex-1">
+                        <span className="block min-w-0 flex-1 basis-0 [overflow-wrap:anywhere]">
                           <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
                             <span className="text-[16px] leading-snug font-medium">{i.name}</span>
                             {i.storage === "冷蔵" && <Snowflake className="size-3.5 text-night" aria-label="冷蔵" />}
@@ -176,10 +176,10 @@ function Pantry() {
                             </span>
                           )}
                         </span>
-                        <span className="flex shrink-0 flex-col items-end gap-1">
-                          {i.remaining && <span className="num text-[16px] font-bold">{i.remaining}</span>}
+                        <span className="flex min-w-0 max-w-[42%] shrink flex-col items-end gap-1 text-right">
+                          {i.remaining && <span className="num text-[15px] leading-snug font-bold [overflow-wrap:anywhere]">{i.remaining}</span>}
                           {i.status && i.status !== "十分" ? (
-                            <Pill tone={STATUS_TONE[i.status]}>{i.status}</Pill>
+                            <span className="shrink-0"><Pill tone={STATUS_TONE[i.status]}>{i.status}</Pill></span>
                           ) : (
                             !i.remaining && <span className="text-[13px] text-ink-3">{i.status}</span>
                           )}
