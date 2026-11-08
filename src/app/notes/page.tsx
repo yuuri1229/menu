@@ -8,8 +8,12 @@ import { Blocks, Rich, richToText, splitSections, stripEmoji } from "@/component
 import { PageHeader } from "@/components/PageHeader";
 import { Empty, LoadingCards, Pill } from "@/components/ui";
 import { useData } from "@/lib/data";
+import { Progress } from "@/components/ui";
 import { useNow } from "@/lib/now";
-import { md, timeAgo } from "@/lib/date";
+import { sum, yen } from "@/lib/format";
+import { budgetTone, spendByWeek, WEEKLY_BUDGET } from "@/lib/spending";
+import { planEnd } from "@/lib/plans";
+import { md, mdw, timeAgo, weekStart, addDays } from "@/lib/date";
 import type { Note } from "@/lib/types";
 
 export default function NotesPage() {
@@ -31,6 +35,37 @@ function Notes() {
   return <NoteList notes={notes} />;
 }
 
+/** 今週のひと目まとめ：食費・外食や不在・次の買い物 */
+function WeekDigest() {
+  const { purchases, plans, ingredients } = useData();
+  const { today } = useNow();
+  const start = weekStart(today);
+  const spent = spendByWeek(purchases).get(start)?.food ?? 0;
+  const weekPlans = plans.filter((p) => !p.canceled && p.date <= addDays(start, 6) && planEnd(p) >= start);
+  const next = ingredients.filter((i) => i.tripDate && i.tripDate >= today && !/取りやめ/.test(i.name)).map((i) => i.tripDate!).sort()[0];
+  const tone = budgetTone(spent);
+  return (
+    <section className="card mb-4 p-4" aria-label="今週のまとめ">
+      <p className="text-[13px] font-bold text-ink-2">今週のまとめ</p>
+      <div className="mt-2 flex items-baseline justify-between">
+        <span className="num font-display text-xl font-bold">{yen(spent)}</span>
+        <span className="num text-[12px] text-ink-3">予算 {yen(WEEKLY_BUDGET)}</span>
+      </div>
+      <Progress value={spent} max={WEEKLY_BUDGET} tone={tone} className="mt-2" />
+      <dl className="mt-3 grid grid-cols-2 gap-2 text-center">
+        <div className="rounded-xl bg-surface-2 py-2">
+          <dt className="text-[12px] text-ink-3">外食・不在</dt>
+          <dd className="num text-[15px] font-bold">{sum(weekPlans.map(() => 1))}件</dd>
+        </div>
+        <div className="rounded-xl bg-surface-2 py-2">
+          <dt className="text-[12px] text-ink-3">次の買い物</dt>
+          <dd className="num text-[15px] font-bold">{next ? mdw(next) : "未定"}</dd>
+        </div>
+      </dl>
+    </section>
+  );
+}
+
 function NoteList({ notes }: { notes: Note[] }) {
   const { today } = useNow();
   const sorted = useMemo(() => {
@@ -41,6 +76,7 @@ function NoteList({ notes }: { notes: Note[] }) {
   return (
     <>
       <PageHeader eyebrow="週のメモ・前提条件" title="ノート" />
+      <WeekDigest />
       {sorted.length === 0 ? (
         <Empty icon={<NotebookText className="size-6" />} title="ノートはまだありません" />
       ) : (

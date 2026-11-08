@@ -3,26 +3,19 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import clsx from "clsx";
-import { CalendarDays, CalendarEdit, ChevronLeft, ChevronRight, Clock } from "@/components/icons";
+import { CalendarDays, CalendarEdit, ChevronLeft, ChevronRight, Clock, GridView, ViewList } from "@/components/icons";
 import { MealRow, MealSheet } from "@/components/Meal";
 import { ImpactCard } from "@/components/Impact";
 import { PageHeader } from "@/components/PageHeader";
 import { PLAN_ICON, PlanSheet, type PlanPreset } from "@/components/Plan";
-import { Empty, LoadingCards } from "@/components/ui";
+import { Empty, LoadingCards, Progress } from "@/components/ui";
 import { useData } from "@/lib/data";
 import { useNow } from "@/lib/now";
 import { addDays, md, mdw, wd, weekDays, weekStart } from "@/lib/date";
 import { sum } from "@/lib/format";
-import { mealsOn } from "@/lib/meals";
+import { mealsOn, SLOT_META, splitTitle } from "@/lib/meals";
 import { planEnd, planWhen } from "@/lib/plans";
 import { SLOTS, type Meal, type Plan } from "@/lib/types";
-
-const GENRE_COLOR: Record<string, string> = {
-  和食: "bg-[#b07a4a]",
-  洋食: "bg-morning",
-  中華: "bg-danger",
-  その他: "bg-ink-3",
-};
 
 export default function WeekPage() {
   return (
@@ -54,12 +47,8 @@ function Week() {
   const days = weekDays(start);
   const weekMeals = useMemo(() => meals.filter((m) => m.date && m.date >= days[0] && m.date <= days[6]), [meals, days]);
   const totalMinutes = sum(weekMeals.map((m) => m.minutes));
-  const genres = useMemo(() => {
-    const c = new Map<string, number>();
-    for (const m of weekMeals) if (m.genre) c.set(m.genre, (c.get(m.genre) ?? 0) + 1);
-    return [...c.entries()].sort((a, b) => b[1] - a[1]);
-  }, [weekMeals]);
-  const genreTotal = sum(genres.map(([, n]) => n));
+  const doneCount = weekMeals.filter((m) => m.done).length;
+  const [view, setView] = useState<"list" | "grid">("list");
   // 取り消し済み（献立を戻す待ち）も出して、やっぱり予定ありに戻せるようにする
   const weekPlans = useMemo(
     () => plans.filter((p) => p.date <= days[6] && planEnd(p) >= days[0]).sort((a, b) => a.date.localeCompare(b.date)),
@@ -123,21 +112,35 @@ function Week() {
             </span>
           )}
         </div>
-        {genreTotal > 0 && (
-          <div className="mt-4">
-            <div className="flex h-2 overflow-hidden rounded-full bg-surface-3" aria-hidden>
-              {genres.map(([g, n]) => (
-                <div key={g} className={clsx("h-full", GENRE_COLOR[g] ?? "bg-ink-3")} style={{ width: `${(n / genreTotal) * 100}%` }} />
-              ))}
+        {weekMeals.length > 0 && (
+          <div className="card mt-4 p-4">
+            <div className="flex items-baseline justify-between gap-3">
+              <p className="num">
+                <span className="font-display text-xl font-bold">{doneCount}</span>
+                <span className="text-[13px] text-ink-3"> / {weekMeals.length}食 作った</span>
+              </p>
+              <div role="tablist" aria-label="表示" className="flex gap-0.5 rounded-xl bg-surface-3 p-0.5">
+                {(
+                  [
+                    ["list", "一覧", ViewList],
+                    ["grid", "マス表", GridView],
+                  ] as const
+                ).map(([v, label, Icon]) => (
+                  <button
+                    key={v}
+                    role="tab"
+                    type="button"
+                    aria-selected={view === v}
+                    onClick={() => setView(v)}
+                    className={clsx("tap flex min-h-9 items-center gap-1 rounded-lg px-2.5 text-[13px] font-medium", view === v ? "bg-surface text-ink shadow-card" : "text-ink-2")}
+                  >
+                    <Icon className="size-4" />
+                    {label}
+                  </button>
+                ))}
+              </div>
             </div>
-            <p className="mt-1.5 flex flex-wrap gap-x-3 text-[12px] text-ink-3">
-              {genres.map(([g, n]) => (
-                <span key={g} className="flex items-center gap-1">
-                  <span className={clsx("size-2 rounded-full", GENRE_COLOR[g] ?? "bg-ink-3")} />
-                  {g} {n}
-                </span>
-              ))}
-            </p>
+            <Progress value={doneCount} max={weekMeals.length} tone="ok" className="mt-3" />
           </div>
         )}
         {weekPlans.length > 0 && (
@@ -171,7 +174,7 @@ function Week() {
           毎週日曜の23時30分に、Claude が翌週分を自動で作ります。外食や家にいない予定は、先に「予定」から登録してください。
         </Empty>
       ) : (
-        <div className="grid gap-3 lg:grid-cols-2">
+        <div className={clsx("grid gap-3 lg:grid-cols-2", view === "grid" && "hidden")}>
           {days[6] >= today && <ImpactCard className="lg:col-span-2" />}
           {days.map((d, i) => {
             const list = mealsOn(meals, d);
@@ -209,8 +212,66 @@ function Week() {
         </div>
       )}
 
+      {view === "grid" && status !== "loading" && weekMeals.length + weekPlans.length > 0 && (
+        <WeekGrid days={days} today={today} onOpen={setOpen} />
+      )}
+
       <MealSheet meal={open} onClose={() => setOpen(null)} />
       <PlanSheet plan={planOpen?.plan ?? null} preset={planOpen?.preset ?? null} onClose={() => setPlanOpen(null)} />
     </>
+  );
+}
+
+const SLOT_TEXT = { morning: "text-morning", noon: "text-noon", night: "text-night" } as const;
+
+/** 1週間を朝昼夜×7日のマスで見る。作った＝緑、外食・不在＝青、今日＝朱の枠 */
+function WeekGrid({ days, today, onOpen }: { days: string[]; today: string; onOpen: (m: Meal) => void }) {
+  const { meals, planAt } = useData();
+  return (
+    <section className="card p-3" aria-label="1週間のマス表">
+      <div className="grid grid-cols-[2.25rem_repeat(3,minmax(0,1fr))] gap-1">
+        <span />
+        {SLOTS.map((s) => (
+          <span key={s} className={clsx("pb-1 text-center text-[12px] font-bold", SLOT_TEXT[SLOT_META[s].tone])}>
+            {SLOT_META[s].label}
+          </span>
+        ))}
+        {days.map((d) => {
+          const list = mealsOn(meals, d);
+          const isToday = d === today;
+          return [
+            <span key={d} className={clsx("num flex flex-col items-center justify-center text-[12px] leading-tight font-bold", isToday ? "text-accent-text" : wd(d) === "日" ? "text-danger" : wd(d) === "土" ? "text-night" : "text-ink")}>
+              {Number(d.slice(8))}
+              <span className="text-[11px] font-normal">{wd(d)}</span>
+            </span>,
+            ...SLOTS.map((s) => {
+              const meal = list.find((m) => m.slot === s);
+              const plan = !meal ? planAt(d, s) : null;
+              const cell = clsx(
+                "flex min-h-14 w-full items-center rounded-lg p-1.5 text-left text-[11px] leading-tight break-words",
+                meal?.done ? "bg-ok-soft text-ink-2" : plan ? "bg-night-soft font-bold text-night" : "bg-surface-2",
+                isToday && "ring-2 ring-accent",
+              );
+              if (meal)
+                return (
+                  <button key={d + s} type="button" onClick={() => onOpen(meal)} className={clsx("tap", cell)}>
+                    <span className="line-clamp-3">{splitTitle(meal.title).head}</span>
+                  </button>
+                );
+              return (
+                <span key={d + s} className={cell}>
+                  {plan ? plan.kind : <span className="text-ink-3">未定</span>}
+                </span>
+              );
+            }),
+          ];
+        })}
+      </div>
+      <p className="mt-2 flex flex-wrap gap-x-3 text-[11px] text-ink-3">
+        <span className="flex items-center gap-1"><i className="size-2.5 rounded-sm bg-ok-soft ring-1 ring-ok" />作った</span>
+        <span className="flex items-center gap-1"><i className="size-2.5 rounded-sm bg-night-soft ring-1 ring-night" />外食・不在</span>
+        <span className="flex items-center gap-1"><i className="size-2.5 rounded-sm ring-2 ring-accent" />今日</span>
+      </p>
+    </section>
   );
 }
