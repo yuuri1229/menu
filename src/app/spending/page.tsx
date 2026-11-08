@@ -9,10 +9,10 @@ import { useData } from "@/lib/data";
 import { useNow } from "@/lib/now";
 import { addDays, md, mdw, weekStart } from "@/lib/date";
 import { groupBy, sum, yen } from "@/lib/format";
-import { budgetTone, countsToBudget, isRice, purchaseDate, spendByWeek, WEEKLY_BUDGET } from "@/lib/spending";
+import { budgetTone, countsToBudget, isRice, paceBudget, purchaseDate, spendByWeek, WEEKLY_BUDGET } from "@/lib/spending";
 
 export default function SpendingPage() {
-  const { purchases, status } = useData();
+  const { purchases, ingredientById, status } = useData();
   const { today } = useNow();
   const thisWeek = weekStart(today);
   const byWeek = useMemo(() => spendByWeek(purchases), [purchases]);
@@ -30,6 +30,12 @@ export default function SpendingPage() {
   const stores = [...groupBy(items, (p) => p.store ?? "不明").entries()]
     .map(([s, ps]) => ({ store: s, total: sum(ps.map((p) => p.amount)), count: ps.length }))
     .sort((a, b) => b.total - a.total);
+  // 食材の使い道（買い物リストの分類。食材に結び付かない明細は「その他」）
+  const kinds = [...groupBy(items.filter(countsToBudget), (p) => ingredientById.get(p.ingredientIds?.[0] ?? "")?.category ?? "その他").entries()]
+    .map(([k, ps]) => ({ kind: k, total: sum(ps.map((p) => p.amount)) }))
+    .sort((a, b) => b.total - a.total);
+  const kindTotal = sum(kinds.map((k) => k.total));
+  const KIND_COLORS = ["bg-ink", "bg-accent", "bg-ok", "bg-night", "bg-warn"];
   const days = [...groupBy(items, (p) => purchaseDate(p) ?? "").entries()].sort((a, b) => b[0].localeCompare(a[0]));
 
   return (
@@ -47,7 +53,21 @@ export default function SpendingPage() {
                 {food > WEEKLY_BUDGET ? `${yen(food - WEEKLY_BUDGET)} 超過` : `残り ${yen(WEEKLY_BUDGET - food)}`}
               </span>
             </div>
-            <Progress value={food} max={WEEKLY_BUDGET} tone={tone} className="mt-3 h-3" />
+            <div className="relative mt-3">
+              <Progress value={food} max={WEEKLY_BUDGET} tone={tone} className="h-3" />
+              {week === thisWeek && (
+                <span
+                  className="absolute -top-1 h-5 w-0.5 rounded bg-ink"
+                  style={{ left: `${(paceBudget(today) / WEEKLY_BUDGET) * 100}%` }}
+                  aria-hidden
+                />
+              )}
+            </div>
+            {week === thisWeek && (
+              <p className="num mt-1.5 text-[12px] text-ink-3">
+                黒い線は今日までの日割りの目安（{yen(paceBudget(today))}）。{food <= paceBudget(today) ? "目安の内側です" : "目安より多めです"}
+              </p>
+            )}
             <dl className="mt-4 grid grid-cols-3 gap-2 text-center">
               {[
                 ["食材", food],
@@ -92,7 +112,7 @@ export default function SpendingPage() {
                         <span
                           className={clsx(
                             "w-full max-w-10 rounded-t-lg transition-all duration-500",
-                            v > WEEKLY_BUDGET ? "bg-danger" : "bg-accent",
+                            v > WEEKLY_BUDGET ? "bg-danger" : "bg-ok",
                             active ? "opacity-100" : "opacity-35 group-hover:opacity-60",
                           )}
                           style={{ height: `${Math.max(2, (v / maxBar) * 100)}%` }}
@@ -120,6 +140,28 @@ export default function SpendingPage() {
             </div>
           ) : (
             <>
+              {kindTotal > 0 && (
+                <>
+                  <SectionTitle>何に使ったか</SectionTitle>
+                  <section className="card p-4" aria-label="食材の内訳">
+                    <div className="flex h-3 overflow-hidden rounded-full bg-surface-3" aria-hidden>
+                      {kinds.map((k, i) => (
+                        <div key={k.kind} className={KIND_COLORS[Math.min(i, KIND_COLORS.length - 1)]} style={{ width: `${(k.total / kindTotal) * 100}%` }} />
+                      ))}
+                    </div>
+                    <ul className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5 text-[13px]">
+                      {kinds.map((k, i) => (
+                        <li key={k.kind} className="flex items-center gap-2">
+                          <i className={clsx("size-2.5 shrink-0 rounded-full", KIND_COLORS[Math.min(i, KIND_COLORS.length - 1)])} />
+                          <span className="min-w-0 flex-1 truncate">{k.kind}</span>
+                          <span className="num text-ink-3">{Math.round((k.total / kindTotal) * 100)}%</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                </>
+              )}
+
               <SectionTitle>お店ごと</SectionTitle>
               <ul className="card divide-y divide-line overflow-hidden">
                 {stores.map((s) => (

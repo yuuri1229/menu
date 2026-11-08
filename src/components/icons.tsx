@@ -1,6 +1,8 @@
 import type { ComponentType } from "react";
 import type { IconBaseProps } from "react-icons";
 import {
+  MdOutlineViewList,
+  MdOutlineGridView,
   MdOutlineRepeat,
   MdOutlineAccountBalanceWallet,
   MdOutlineAdd,
@@ -123,3 +125,6 @@ export const EatingOut = material(MdOutlineRestaurant, "EatingOut");
 export const Away = material(MdOutlineEventBusy, "Away");
 export const CalendarEdit = material(MdOutlineEditCalendar, "CalendarEdit");
 export const Undo = material(MdOutlineUndo, "Undo");
+
+export const ViewList = material(MdOutlineViewList, "ViewList");
+export const GridView = material(MdOutlineGridView, "GridView");

@@ -1,5 +1,5 @@
 import { RICE_PATTERN, WEEKLY_BUDGET } from "./config";
-import { weekStart } from "./date";
+import { weekday, weekStart } from "./date";
 import { sum } from "./format";
 import type { Purchase } from "./types";
 
@@ -42,3 +42,10 @@ export function budgetTone(spent: number, budget = WEEKLY_BUDGET): "ok" | "warn"
 }
 
 export { WEEKLY_BUDGET, sum };
+
+/** 今日までの日割りの予算（月曜を1日目として、その日までの分）。買い物は週の前半に偏るので、あくまで目安 */
+export function paceBudget(today: string, budget = WEEKLY_BUDGET): number {
+  const w = weekday(today);
+  const elapsed = w === 0 ? 7 : w;
+  return Math.round(((budget * elapsed) / 7) / 10) * 10;
+}

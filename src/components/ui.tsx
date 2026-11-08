@@ -117,7 +117,7 @@ export function Segmented<T extends string>({
 }: {
   value: T;
   onChange: (v: T) => void;
-  options: { value: T; label: ReactNode; sub?: ReactNode }[];
+  options: { value: T; label: ReactNode; sub?: ReactNode; /** done は薄く、next は朱の枠 */ mark?: "done" | "next" }[];
   label: string;
 }) {
   return (
@@ -134,6 +134,8 @@ export function Segmented<T extends string>({
             className={clsx(
               "tap min-w-0 flex-1 min-h-11 rounded-xl px-2 py-2 text-center text-[14px] font-medium transition-all",
               active ? "bg-surface text-ink shadow-card" : "text-ink-2",
+              o.mark === "done" && !active && "opacity-50",
+              o.mark === "next" && "ring-2 ring-accent",
             )}
           >
             <span className="block truncate">{o.label}</span>
@@ -195,6 +197,24 @@ export function LoadingCards({ count = 3 }: { count?: number }) {
       {Array.from({ length: count }, (_, i) => (
         <Skeleton key={i} className="h-20" />
       ))}
+    </div>
+  );
+}
+
+/** 円グラフ状の達成率。中に数字などを入れる */
+export function Ring({ value, max, tone = "ok", size = 44, children }: { value: number; max: number; tone?: "ok" | "warn" | "danger"; size?: number; children?: ReactNode }) {
+  const pct = max > 0 ? Math.min(100, (value / max) * 100) : 0;
+  const color = { ok: "var(--ok)", warn: "var(--warn)", danger: "var(--danger)" }[tone];
+  return (
+    <div
+      className="grid shrink-0 place-items-center rounded-full"
+      style={{ width: size, height: size, background: `conic-gradient(${color} ${pct}%, var(--surface-3) 0)` }}
+      role="img"
+      aria-label={`${Math.round(pct)}%`}
+    >
+      <span className="num grid place-items-center rounded-full bg-surface text-[12px] font-bold" style={{ width: size - 10, height: size - 10 }}>
+        {children}
+      </span>
     </div>
   );
 }

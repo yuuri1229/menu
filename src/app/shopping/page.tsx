@@ -11,13 +11,15 @@ import { ReceiptBanner } from "@/components/ReceiptBanner";
 import { PageHeader } from "@/components/PageHeader";
 import { Empty, LoadingCards, Pill, Progress, Segmented, Sheet } from "@/components/ui";
 import { useData } from "@/lib/data";
-import { CATEGORIES, categoryOptions } from "@/lib/categories";
+import { categoryOptions } from "@/lib/categories";
 import { useNow } from "@/lib/now";
-import { md, mdw, relativeDay, weekStart } from "@/lib/date";
+import { md, mdw, relativeDay, wd, weekStart } from "@/lib/date";
+import { SLOT_META } from "@/lib/meals";
 import { groupBy, sum, yen } from "@/lib/format";
 import type { Ingredient } from "@/lib/types";
 
-const CATEGORY_ORDER: readonly string[] = CATEGORIES;
+/** 店の棚の順：常温（野菜・乾物）→冷蔵→冷凍 */
+const STORAGE_ORDER = ["常温", "冷蔵", "冷凍"];
 export default function ShoppingPage() {
   return (
     <Suspense fallback={<LoadingCards />}>
@@ -35,7 +37,7 @@ interface Trip {
 
 function Shopping() {
   const params = useSearchParams();
-  const { ingredients, notes, purchases, status, setBought, removeIngredient } = useData();
+  const { ingredients, notes, purchases, status, setBought, removeIngredient, mealById } = useData();
   // 外食・不在の予定で作らなくなった献立にしか使わない食材（組み直しは Claude が毎日7時・12時・21時）
   const dontBuy = new Set(useImpact().dontBuy.map((i) => i.id));
   const [hideDone, setHideDone] = useState(false);
@@ -54,6 +56,8 @@ function Shopping() {
   }, [ingredients]);
 
   const defaultTrip = trips.find((t) => t.date >= today) ?? trips[trips.length - 1];
+  const tripDone = (t: Trip) => t.items.every((i) => i.bought);
+  const nextTrip = trips.find((t) => t.date >= today && !tripDone(t));
   const [selected, setSelected] = useState<string | null>(params.get("trip"));
   const trip = trips.find((t) => t.label === selected) ?? defaultTrip;
 
@@ -101,9 +105,17 @@ function Shopping() {
   const estimate = sum(trip.items.map((i) => i.estimate));
   const actual = sum(trip.items.map((i) => i.actual));
   const leftEstimate = sum(trip.items.filter((i) => !isChecked(i)).map((i) => i.estimate));
-  const groups = [...groupBy(trip.items, (i) => i.category ?? "その他").entries()].sort(
-    (a, b) => (CATEGORY_ORDER.indexOf(a[0]) + 99) % 99 - (CATEGORY_ORDER.indexOf(b[0]) + 99) % 99,
-  );
+  const rank = (st: string) => (STORAGE_ORDER.includes(st) ? STORAGE_ORDER.indexOf(st) : STORAGE_ORDER.length);
+  const groups = [...groupBy(trip.items, (i) => i.storage ?? "その他").entries()].sort((a, b) => rank(a[0]) - rank(b[0]));
+  // いつ使うか：この食材を使う献立の日と食事（近い順に2つ）
+  const usedOn = (i: Ingredient) =>
+    i.mealIds
+      .map((id) => mealById.get(id))
+      .filter((m): m is NonNullable<typeof m> => !!m?.date)
+      .sort((a, b) => a.date!.localeCompare(b.date!))
+      .slice(0, 2)
+      .map((m) => `${wd(m.date!)}${m.slot ? SLOT_META[m.slot].short : ""}`)
+      .join("・");
   const note = notes.find((n) => n.kind === "week" && n.start && n.end && n.start <= trip.date && trip.date <= n.end);
   const rel = relativeDay(trip.date, today);
 
@@ -128,7 +140,8 @@ function Shopping() {
               options={weekTrips.map((t) => ({
                 value: t.label,
                 label: t.label.replace(/\s*\d{1,2}\/\d{1,2}.*/, "") + " " + md(t.date),
-                sub: relativeDay(t.date, today) ?? `${t.items.length}品`,
+                sub: tripDone(t) ? "済" : (relativeDay(t.date, today) ?? `${t.items.length}品`),
+                mark: tripDone(t) ? ("done" as const) : t === nextTrip ? ("next" as const) : undefined,
               }))}
             />
           </div>
@@ -148,7 +161,7 @@ function Shopping() {
       <section className="card p-4" aria-label="この回のまとめ">
         <div className="flex items-end justify-between gap-3">
           <div>
-            <p className="text-[12px] text-ink-3">チェック済み</p>
+            <p className="text-[12px] text-ink-3">カゴに入った</p>
             <p className="num font-display text-2xl font-bold">
               {done}
               <span className="text-base text-ink-3"> / {trip.items.length}品</span>
@@ -245,11 +258,15 @@ function Shopping() {
                               予定で使わなくなった物。買わなくてよさそう
                             </Pill>
                           )}
-                          {i.memo && <span className="block text-[12px] leading-snug text-ink-3">{i.memo}</span>}
+                          {(i.category || usedOn(i) || i.memo) && (
+                            <span className="block text-[12px] leading-snug text-ink-3">
+                              {[i.category, usedOn(i) && `${usedOn(i)}に使う`, i.memo].filter(Boolean).join("・")}
+                            </span>
+                          )}
                         </span>
                         <span className="flex shrink-0 flex-col items-end gap-0.5">
                           <span className={clsx("num text-[14px]", checked ? "text-ink-3" : "text-ink-2")}>{yen(i.actual ?? i.estimate)}</span>
-                          {i.storage === "冷蔵" && <Snowflake className="size-3.5 text-night" aria-label="冷蔵" />}
+                          {i.storage === "冷凍" && <Snowflake className="size-3.5 text-night" aria-label="冷凍" />}
                         </span>
                       </button>
                       {editMode &&
