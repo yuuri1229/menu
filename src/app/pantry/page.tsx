@@ -3,7 +3,7 @@
 import { Suspense, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import clsx from "clsx";
-import { Check, ChevronRight, Fish, Minus, Plus, Refrigerator, Search, Snowflake, Trash, TriangleAlert, X } from "@/components/icons";
+import { Check, ChevronRight, Fish, House, Minus, Plus, Refrigerator, Search, Snowflake, Trash, X, type AppIcon } from "@/components/icons";
 import { Chips, Field, PrimaryButton, inputClass } from "@/components/Form";
 import { PageHeader } from "@/components/PageHeader";
 import { Empty, LoadingCards, Pill, Sheet, type Tone } from "@/components/ui";
@@ -57,13 +57,10 @@ function Pantry() {
       .sort((a, b) => (STATUS_RANK[a.status ?? ""] ?? 4) - (STATUS_RANK[b.status ?? ""] ?? 4) || a.name.localeCompare(b.name, "ja"));
   }, [inventory, q, filter]);
 
-  const order = categoryOptions(inventory.map((i) => i.category));
-  const groups = [...groupBy(list, (i) => i.category ?? "その他").entries()].sort((a, b) => order.indexOf(a[0]) - order.indexOf(b[0]));
-  const summary = {
-    out: inventory.filter((i) => i.status === "切れた").length,
-    low: inventory.filter((i) => i.status === "残りわずか").length,
-    soon: inventory.filter((i) => i.bestBefore && diffDays(i.bestBefore, today) <= 3).length,
-  };
+  const groups = [...groupBy(list, (i) => i.storage ?? "場所未設定").entries()].sort(
+    (a, b) => storageRank(a[0]) - storageRank(b[0]),
+  );
+  const daysOf = (i: InventoryItem) => (i.bestBefore ? diffDays(i.bestBefore, today) : null);
 
   return (
     <>
@@ -117,78 +114,19 @@ function Pantry() {
         </Empty>
       ) : (
         <div className="space-y-5">
-          {filter === "all" && !q && (
-            <dl className="grid grid-cols-3 gap-2" aria-label="在庫のまとめ">
-              {(
-                [
-                  ["切れた", summary.out, "text-danger"],
-                  ["残りわずか", summary.low, "text-warn"],
-                  ["期限が近い", summary.soon, "text-warn"],
-                ] as const
-              ).map(([label, n, tone]) => (
-                <div key={label} className="card px-3 py-2.5 text-center">
-                  <dd className={clsx("num text-[22px] leading-none font-bold", n > 0 ? tone : "text-ink-3")}>{n}</dd>
-                  <dt className="mt-1 text-[12px] text-ink-2">{label}</dt>
-                </div>
-              ))}
-            </dl>
-          )}
-          {groups.map(([category, items]) => (
-            <section key={category} aria-label={category}>
+          {filter === "all" && !q && <StorageOverview items={inventory} daysOf={daysOf} />}
+          {groups.map(([storage, items]) => (
+            <section key={storage} aria-label={storage}>
               <h2 className="mb-2 flex items-baseline gap-2 px-1">
-                <span className="text-[15px] font-bold">{category}</span>
+                <span className="text-[15px] font-bold">{storage}</span>
                 <span className="num text-[12px] text-ink-3">{items.length}件</span>
               </h2>
               <ul className="card divide-y divide-line overflow-hidden">
-                {items.map((i) => {
-                  const days = i.bestBefore ? diffDays(i.bestBefore, today) : null;
-                  return (
-                    <li key={i.id}>
-                      <button
-                        type="button"
-                        onClick={() => setEditing(i.id)}
-                        aria-label={`${i.name}の在庫を編集する`}
-                        className="tap flex w-full items-center gap-3 px-4 py-3.5 text-left active:bg-surface-2"
-                      >
-                        <span className="block min-w-0 flex-1">
-                          <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                            <span className="text-[16px] leading-snug font-medium">{i.name}</span>
-                            {i.storage === "冷蔵" && <Snowflake className="size-3.5 text-night" aria-label="冷蔵" />}
-                            {i.seafood === "NG" && (
-                              <Pill tone="danger">
-                                <Fish className="size-3" />
-                                魚介NG
-                              </Pill>
-                            )}
-                            {i.seafood === "要確認" && (
-                              <Pill tone="warn">
-                                <Fish className="size-3" />
-                                魚介を確認
-                              </Pill>
-                            )}
-                          </span>
-                          {i.memo && <span className="mt-0.5 block text-[13px] leading-snug text-ink-3">{i.memo}</span>}
-                          {days != null && (
-                            <span className={clsx("num mt-1 flex items-center gap-1 text-[13px]", days <= 1 ? "font-medium text-danger" : days <= 3 ? "font-medium text-warn" : "text-ink-3")}>
-                              {days <= 3 && <TriangleAlert className="size-3.5" />}
-                              期限 {mdw(i.bestBefore!)}
-                              {days < 0 ? "（過ぎています）" : days === 0 ? "（今日まで）" : days <= 3 ? `（あと${days}日）` : ""}
-                            </span>
-                          )}
-                        </span>
-                        <span className="flex shrink-0 flex-col items-end gap-1">
-                          {i.remaining && <span className="num text-[16px] font-bold">{i.remaining}</span>}
-                          {i.status && i.status !== "十分" ? (
-                            <Pill tone={STATUS_TONE[i.status]}>{i.status}</Pill>
-                          ) : (
-                            !i.remaining && <span className="text-[13px] text-ink-3">{i.status}</span>
-                          )}
-                        </span>
-                        <ChevronRight className="size-4 shrink-0 text-ink-3" />
-                      </button>
-                    </li>
-                  );
-                })}
+                {items.map((i) => (
+                  <li key={i.id}>
+                    <StockRow item={i} days={daysOf(i)} onOpen={() => setEditing(i.id)} />
+                  </li>
+                ))}
               </ul>
             </section>
           ))}
@@ -213,6 +151,176 @@ function Pantry() {
         }}
       />
     </>
+  );
+}
+
+const STORAGE_ORDER = ["冷蔵", "冷凍", "常温"];
+const storageRank = (s: string) => {
+  const n = STORAGE_ORDER.indexOf(s);
+  return n < 0 ? STORAGE_ORDER.length : n;
+};
+const STORAGE_ICON: Record<string, AppIcon> = { 冷蔵: Refrigerator, 冷凍: Snowflake, 常温: House };
+
+/** 見た目の色分け：ok=十分、warn=少ない・期限が3日以内、danger=切れた・期限が明日まで、unknown=要確認 */
+type Look = "ok" | "warn" | "danger" | "unknown";
+function lookOf(i: InventoryItem, days: number | null): Look {
+  if (i.status === "切れた" || (days != null && days <= 1)) return "danger";
+  if (i.status === "残りわずか" || (days != null && days <= 3)) return "warn";
+  if (i.status === "要確認" || !i.status) return "unknown";
+  return "ok";
+}
+const LOOK_BG: Record<Look, string> = { ok: "bg-ok", warn: "bg-warn", danger: "bg-danger", unknown: "border-2 border-dashed border-ink-3" };
+const LOOK_LEGEND: [Look, string][] = [
+  ["ok", "十分"],
+  ["warn", "少ない・期限が近い"],
+  ["danger", "切れた・明日まで"],
+  ["unknown", "要確認"],
+];
+
+/** 冷蔵・冷凍・常温ごとに、1品を丸1つで並べた在庫の見取り図 */
+function StorageOverview({ items, daysOf }: { items: InventoryItem[]; daysOf: (i: InventoryItem) => number | null }) {
+  const LOOK_RANK: Record<Look, number> = { danger: 0, warn: 1, unknown: 2, ok: 3 };
+  const places = STORAGE_ORDER.map((s) => [s, items.filter((i) => i.storage === s)] as const);
+  const other = items.filter((i) => !i.storage || !STORAGE_ORDER.includes(i.storage));
+  const cols = other.length ? [...places, ["場所未設定", other] as const] : places;
+  return (
+    <section aria-label="在庫の見取り図">
+      <div className={clsx("grid gap-2", cols.length > 3 ? "grid-cols-2" : "grid-cols-3")}>
+        {cols.map(([place, list]) => {
+          const looks = list.map((i) => lookOf(i, daysOf(i))).sort((a, b) => LOOK_RANK[a] - LOOK_RANK[b]);
+          const need = looks.filter((l) => l === "danger" || l === "warn").length;
+          return (
+            <div key={place} className="card min-w-0 px-3 py-2.5" aria-label={`${place} ${list.length}品、うち${need}品は買い足しか期限に注意`}>
+              <p className="flex items-baseline justify-between gap-1 text-[12px] font-medium text-ink-2">
+                <span className="truncate">{place}</span>
+                <span className="num text-ink-3">{list.length}</span>
+              </p>
+              <div className="mt-1.5 flex flex-wrap gap-[5px]" aria-hidden>
+                {looks.length === 0 ? (
+                  <span className="text-[12px] text-ink-3">なし</span>
+                ) : (
+                  looks.map((l, k) => <i key={k} className={clsx("block size-3.5 rounded-full", LOOK_BG[l])} />)
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <p className="mt-2 flex flex-wrap gap-x-3 gap-y-1 px-1 text-[11px] text-ink-3" aria-hidden>
+        {LOOK_LEGEND.map(([l, label]) => (
+          <span key={l} className="flex items-center gap-1">
+            <i className={clsx("block size-2.5 rounded-full", l === "unknown" ? "border-[1.5px] border-dashed border-ink-3" : LOOK_BG[l])} />
+            {label}
+          </span>
+        ))}
+      </p>
+    </section>
+  );
+}
+
+/** 期限までの日数を、7日で一周するリングで見せる */
+function ExpiryRing({ days }: { days: number }) {
+  const size = 36;
+  const r = size / 2 - 3;
+  const c = 2 * Math.PI * r;
+  const frac = days < 0 ? 1 : Math.min(1, (days + 0.5) / 7);
+  const tone = days <= 1 ? "var(--danger)" : days <= 3 ? "var(--warn)" : "var(--ok)";
+  const label = days < 0 ? "過ぎ" : days === 0 ? "今日" : days > 99 ? "99+" : String(days);
+  return (
+    <span className="relative grid size-9 shrink-0 place-items-center" aria-hidden>
+      <svg width={size} height={size} className="absolute inset-0 -rotate-90">
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" strokeWidth={3.5} style={{ stroke: "var(--surface-3)" }} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" strokeWidth={3.5} strokeLinecap="round" strokeDasharray={`${c * frac} ${c}`} style={{ stroke: tone }} />
+      </svg>
+      <span className="num relative text-[11px] leading-none font-bold" style={{ color: days <= 3 ? tone : "var(--ink-2)" }}>
+        {label}
+      </span>
+    </span>
+  );
+}
+
+/** 残量の目安を3つのブロックで（十分=3、残りわずか=1、切れた=0、要確認=点線） */
+const LEVEL: Record<StockStatus, number> = { 十分: 3, 残りわずか: 1, 切れた: 0, 要確認: -1 };
+function LevelMeter({ status }: { status: StockStatus }) {
+  const n = LEVEL[status];
+  const fill = status === "残りわずか" ? "bg-warn" : "bg-ok";
+  return (
+    <span className="flex gap-[3px]" aria-hidden>
+      {[0, 1, 2].map((k) => (
+        <i key={k} className={clsx("block h-1.5 w-3 rounded-full", n < 0 ? "border-[1.5px] border-dashed border-ink-3" : k < n ? fill : "bg-surface-3")} />
+      ))}
+    </span>
+  );
+}
+
+function StockRow({ item: i, days, onOpen }: { item: InventoryItem; days: number | null; onOpen: () => void }) {
+  const Icon = STORAGE_ICON[i.storage ?? ""] ?? Refrigerator;
+  const gone = i.status === "切れた";
+  const parts: { text: string; tone: string }[] = [];
+  if (gone) parts.push({ text: "切れた・次の買い物へ", tone: "font-medium text-danger" });
+  else if (i.status === "残りわずか") parts.push({ text: "残りわずか", tone: "font-medium text-warn" });
+  else if (i.status === "要確認") parts.push({ text: "家で確かめる", tone: "font-medium text-ink-2" });
+  if (days != null && !gone) {
+    const text = days < 0 ? "期限が過ぎています" : days === 0 ? "今日まで" : days <= 3 ? `あと${days}日（${mdw(i.bestBefore!)}）` : `期限 ${mdw(i.bestBefore!)}`;
+    parts.push({ text, tone: days <= 1 ? "font-medium text-danger" : days <= 3 ? "font-medium text-warn" : "text-ink-3" });
+  }
+  if (!parts.length) parts.push({ text: i.status ?? "状態未設定", tone: "text-ink-3" });
+  if (i.category) parts.push({ text: i.category, tone: "text-ink-3" });
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      aria-label={`${i.name}の在庫を編集する`}
+      className="tap flex w-full items-center gap-3 px-4 py-3 text-left active:bg-surface-2"
+    >
+      {days != null && !gone ? (
+        <ExpiryRing days={days} />
+      ) : (
+        <span className="grid size-9 shrink-0 place-items-center rounded-full bg-surface-3 text-ink-2" aria-hidden>
+          <Icon className="size-[18px]" />
+        </span>
+      )}
+      <span className="block min-w-0 flex-1 basis-0 [overflow-wrap:anywhere]">
+        <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span className={clsx("text-[16px] leading-snug font-medium", gone && "text-ink-3")}>{i.name}</span>
+          {i.seafood === "NG" && (
+            <Pill tone="danger">
+              <Fish className="size-3" />
+              魚介NG
+            </Pill>
+          )}
+          {i.seafood === "要確認" && (
+            <Pill tone="warn">
+              <Fish className="size-3" />
+              魚介を確認
+            </Pill>
+          )}
+        </span>
+        <span className="num mt-0.5 block text-[13px] leading-snug">
+          {parts.map((p, k) => (
+            <span key={k} className={p.tone}>
+              {k > 0 && <span className="text-ink-3"> · </span>}
+              {p.text}
+            </span>
+          ))}
+        </span>
+        {i.memo && <span className="mt-0.5 block text-[13px] leading-snug text-ink-3">{i.memo}</span>}
+      </span>
+      <span className="flex min-w-0 max-w-[40%] shrink flex-col items-end gap-1.5 text-right">
+        {i.remaining && !gone && (
+          <span
+            className={clsx(
+              "num leading-snug [overflow-wrap:anywhere]",
+              i.remaining.length <= 8 ? "text-[15px] font-bold" : "text-[13px] text-ink-2",
+            )}
+          >
+            {i.remaining}
+          </span>
+        )}
+        {i.status && <LevelMeter status={i.status} />}
+      </span>
+      <ChevronRight className="size-4 shrink-0 text-ink-3" />
+    </button>
   );
 }
 
