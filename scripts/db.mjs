@@ -48,6 +48,7 @@ const HELP = `使い方: node scripts/db.mjs <コマンド> [引数]
 通知（アプリの「アカウント」で通知をオンにした端末に届く）
   notify <タイトル> [本文] [--url パス]  全端末にプッシュ通知を送る（--url はアプリ内のパス。例 shopping/）
   notify:remind [--date YYYY-MM-DD]      明日の買い物と段取りの通知を送る（無ければ送らない。毎晩 Actions が実行）
+  discord <タイトル> [本文] [--url URL]  ルーティンの完了報告を Discord へ送る（環境変数 DISCORD_WEBHOOK_URL。無ければ送らず正常終了）
   push                                   通知を受け取る端末の一覧
   push:keys                              通知の鍵（VAPID）を作る。初回だけ。公開鍵を src/lib/config.ts に書く
 
@@ -67,6 +68,30 @@ const option = (name) => (args.includes(name) ? args[args.indexOf(name) + 1] : u
 
 if (!cmd || cmd === "help" || flags.has("--help")) {
   console.log(HELP);
+  process.exit(0);
+}
+
+// Discord への報告は Firestore を使わないので、鍵が無くても動くようここで済ませる
+if (cmd === "discord") {
+  const [title, body = ""] = rest;
+  if (!title) {
+    console.error("エラー: discord <タイトル> [本文] の形で指定してください");
+    process.exit(1);
+  }
+  const { sendDiscord, needsEnvProxy } = await import("./discord.mjs");
+  // Node の fetch は HTTPS_PROXY を見ないので、プロキシ越しの環境（クラウド環境など）では有効にして入れ直す
+  if (needsEnvProxy(process.env)) {
+    const { spawnSync } = await import("node:child_process");
+    const r = spawnSync(process.execPath, ["--no-warnings", ...process.argv.slice(1)], { stdio: "inherit", env: { ...process.env, NODE_USE_ENV_PROXY: "1" } });
+    process.exit(r.status ?? 1);
+  }
+  try {
+    const r = await sendDiscord(title, body, option("--url") ?? "");
+    console.log(r === "sent" ? "Discord に送りました" : "DISCORD_WEBHOOK_URL が未設定のため Discord への報告をスキップしました");
+  } catch (e) {
+    console.error(`Discord に送れませんでした: ${e.message}`);
+    process.exit(1);
+  }
   process.exit(0);
 }
 
